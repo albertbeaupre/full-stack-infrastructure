@@ -1,6 +1,6 @@
 package event;
 
-import backend.event.Event;
+import infrastructure.event.Event;
 
 public class TestEvent extends Event {
 

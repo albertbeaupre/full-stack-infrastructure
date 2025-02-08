@@ -1,6 +1,6 @@
 package event;
 
-import backend.event.EventPublisher;
+import infrastructure.event.EventPublisher;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 

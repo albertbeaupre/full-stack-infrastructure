@@ -1,6 +1,6 @@
 package event;
 
-import backend.event.EventListener;
+import infrastructure.event.EventListener;
 
 public class ConsumingEventListener implements EventListener<TestEvent> {
 

@@ -1,7 +1,7 @@
 package event;
 
-import backend.event.EventListener;
-import backend.event.EventPriority;
+import infrastructure.event.EventListener;
+import infrastructure.event.EventPriority;
 
 public class HigherPriorityEventListener implements EventListener<TestEvent> {
 
