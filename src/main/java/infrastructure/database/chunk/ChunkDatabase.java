@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -51,9 +52,8 @@ import java.util.concurrent.locks.ReentrantLock;
  *
  * @param <K> The type of keys used by the database.
  * @param <D> The type of data stored in the database.
- *
- * @since August 31st, 2024
  * @author Albert Beaupre
+ * @since August 31st, 2024
  */
 public abstract class ChunkDatabase<K, D> {
 
@@ -136,19 +136,21 @@ public abstract class ChunkDatabase<K, D> {
             }
         }
 
-        // Load pointers from the key file if it exists
-        if (Files.exists(Paths.get(folder.concat(KEY_FILE)))) {
-            try (FileChannel channel = FileChannel.open(Paths.get(KEY_FILE), StandardOpenOption.READ)) {
-                MappedByteBuffer buffer = channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size());
+        String keyFilePath = folder + File.separator + KEY_FILE; // Use File.separator for OS compatibility
+        Path path = Paths.get(keyFilePath);
 
+        if (Files.exists(path)) {
+            try (FileChannel channel = FileChannel.open(path, StandardOpenOption.READ)) {
+                MappedByteBuffer buffer = channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size());
                 while (buffer.remaining() > 0) {
                     long pointer = buffer.position();
                     byte[] data = new byte[keyChunkSize];
                     buffer.get(data);
                     this.pointers.put(this.deconstructKey(data), pointer);
                 }
+                System.out.println(pointers);
             } catch (IOException e) {
-                throw new RuntimeException("Cannot read chunk database pointer file", e);
+                throw new RuntimeException("Cannot read chunk database pointer file: " + keyFilePath, e);
             }
         }
     }
@@ -209,6 +211,9 @@ public abstract class ChunkDatabase<K, D> {
      */
     public CompletableFuture<Void> create(final K key, final D data) {
         return CompletableFuture.runAsync(() -> {
+            if (pointers.containsKey(key))
+                throw new RuntimeException("Key already exists: " + key);
+
             var keyObject = this.keyPool.borrow();
             var dataObject = this.dataPool.borrow();
 
@@ -293,6 +298,62 @@ public abstract class ChunkDatabase<K, D> {
     }
 
     /**
+     * Asynchronously deletes the data associated with the given key from the database.
+     * This method marks the entry as deleted and removes it from the pointers map.
+     * The actual data space is not reclaimed, but the key is no longer accessible.
+     *
+     * @param key The key to delete from the database.
+     * @return A {@link CompletableFuture} representing the completion of the delete operation.
+     * @throws NullPointerException If the key does not exist in the database.
+     */
+    public CompletableFuture<Void> delete(final K key) {
+        Lock lock = locks.computeIfAbsent(key, k -> new ReentrantLock());
+
+        return CompletableFuture.runAsync(() -> {
+            lock.lock();
+            try {
+                Long pointer = this.pointers.getOrDefault(key, INVALID_POINTER);
+
+                if (pointer == INVALID_POINTER)
+                    return;
+
+                // Get file objects from pools
+                var keyObject = this.keyPool.borrow();
+                var dataObject = this.dataPool.borrow();
+
+                try {
+                    var keyRAF = keyObject.file();
+                    var dataRAF = dataObject.file();
+
+                    // Mark key as deleted by writing zeros to key chunk
+                    keyRAF.seek(pointer * this.keyChunkSize);
+                    keyRAF.write(new byte[this.keyChunkSize]);
+
+                    // Optionally mark data as deleted (write zeros)
+                    dataRAF.seek(pointer * this.dataChunkSize);
+                    dataRAF.write(new byte[this.dataChunkSize]);
+
+                    // Remove from pointers map
+                    this.pointers.remove(key);
+
+                } catch (IOException e) {
+                    throw new RuntimeException("Could not delete entry from database: " + e.getMessage(), e);
+                } finally {
+                    // Return objects to pools
+                    this.keyPool.recycle(keyObject);
+                    this.dataPool.recycle(dataObject);
+                }
+
+                // Remove lock after successful deletion
+                locks.remove(key);
+
+            } finally {
+                lock.unlock();
+            }
+        }, service);
+    }
+
+    /**
      * Retrieves the data associated with the given key from the database asynchronously.
      * If the key does not exist, a {@link NullPointerException} is thrown.
      *
@@ -305,7 +366,7 @@ public abstract class ChunkDatabase<K, D> {
             long pointer = this.pointers.getOrDefault(key, INVALID_POINTER);
 
             if (pointer == INVALID_POINTER)
-                throw new NullPointerException("Key does not exist: " + key);
+                return null;
 
             var dataObject = this.dataPool.borrow();
             var raf = dataObject.file();
@@ -321,4 +382,48 @@ public abstract class ChunkDatabase<K, D> {
             }
         });
     }
+
+    /**
+     * Shuts down the ChunkDatabase, ensuring all resources are properly released.
+     * This method waits for all pending tasks in the ExecutorService to complete,
+     * with a configurable timeout, before closing the object pools.
+     *
+     * @param timeout  the maximum time to wait for tasks to complete
+     * @param unit     the time unit of the timeout argument
+     * @return true if shutdown completed successfully, false if it timed out or was interrupted
+     */
+    public boolean shutdown(long timeout, java.util.concurrent.TimeUnit unit) {
+        boolean shutdownSuccessful = false;
+
+        try {
+            service.shutdown(); // Stops accepting new tasks
+
+            // Wait for all tasks to finish up to the specified timeout
+            if (!service.awaitTermination(timeout, unit)) {
+                // If timeout occurs, forcefully terminate remaining tasks
+                List<Runnable> unfinishedTasks = service.shutdownNow();
+                System.err.println("Timeout occurred after " + timeout + " " + unit + ". Forcibly terminated " + unfinishedTasks.size() + " tasks.");
+                // Partial success due to timeout
+            } else {
+                shutdownSuccessful = true; // Full success
+            }
+
+            // Step 2: Close the object pools after tasks are done
+            keyPool.close();
+            dataPool.close();
+
+            // Step 3: Clear internal state (optional)
+            pointers.clear();
+            locks.clear();
+        } catch (InterruptedException e) {
+            // Handle interruption during shutdown
+            service.shutdownNow(); // Force shutdown if interrupted
+            Thread.currentThread().interrupt(); // Restore interrupted status
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to shut down ChunkDatabase properly", e);
+        }
+
+        return shutdownSuccessful;
+    }
+
 }

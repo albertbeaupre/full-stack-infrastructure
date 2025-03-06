@@ -3,173 +3,204 @@ package infrastructure.database.document;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * {@code DocumentDatabase} represents a database that holds documents of 1 single type based on
- * the extension provided on construction of this class.
+ * A high-performance, thread-safe document database for managing a single <b>type</b> of document.
+ * Provides asynchronous operations for creating, updating, appending, and retrieving documents
+ * with optimized concurrency control and minimal resource usage.
  *
- * <p>This class supports asynchronous creation,
- * appending, and retrieval of documents.
+ * <p>This class uses a fixed thread pool for asynchronous operations and employs a
+ * lock-per-key strategy to ensure thread safety while maximizing parallelism.
  *
- * @param <D> The document type.
- * @author Albert Beaupre
- * @since September 2nd, 2024
+ * @param <D> The type of document managed by this database
  */
 public abstract class DocumentDatabase<D> {
-
-    /**
-     * The folder that holds all documents.
-     */
-    private final String folder;
-
-    /**
-     * The extension to append to every document.
-     */
+    private final Path folder;
     private final String extension;
-
-    /**
-     * The service used to submit database tasks.
-     */
     private final ExecutorService service;
+    private final ConcurrentHashMap<String, ReentrantLock> locks = new ConcurrentHashMap<>();
 
     /**
-     * Locks used to limit threads from creating/appending to documents.
-     */
-    private final ConcurrentHashMap<String, Lock> locks;
-
-    /**
-     * Constructs a new {@code DocumentDatabase} with the folder being the folder location, the extension being
-     * the document extension type to append to the end of every file, and the threadCount being the amount of
-     * threads usable for the internal {@code ExecutorService} to support asynchronous functionality.
+     * Constructs a new DocumentDatabase instance.
      *
-     * @param folder      The folder to hold the documents
-     * @param extension   The extension to append to the end of every document
-     * @param threadCount The threads usable for asynchronous functionality
+     * @param folder      The directory path where documents will be stored
+     * @param extension   The file extension (without dot) to append to all document files
+     * @param threadCount The number of threads in the pool for asynchronous operations
+     * @throws RuntimeException if the folder cannot be created or accessed
      */
     public DocumentDatabase(String folder, String extension, int threadCount) {
-        this.folder = folder;
+        this.folder = Path.of(folder);
         this.extension = extension;
-        this.locks = new ConcurrentHashMap<>();
-        this.service = Executors.newFixedThreadPool(threadCount);
+        // Create a fixed thread pool with daemon threads for better resource cleanup
+        this.service = Executors.newFixedThreadPool(threadCount,
+                r -> {
+                    Thread t = new Thread(r);
+                    t.setDaemon(true);
+                    return t;
+                });
 
-        Path path = Paths.get(folder);
-        if (!Files.exists(path)) {
-            try {
-                Files.createDirectory(path); // Create the folder if it doesn't exist
-            } catch (Exception e) {
-                throw new RuntimeException("Unable to create directory: ".concat(folder));
-            }
+        try {
+            // Ensure the storage directory exists, creating it if necessary
+            Files.createDirectories(this.folder);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create directory: " + folder, e);
         }
     }
 
     /**
-     * Deconstructs a byte array into a document of type D.
+     * Deserializes a byte array into a document object.
      *
-     * @param data the byte array representing the serialized document
-     * @return the reconstructed document
+     * @param data The byte array containing the serialized document
+     * @return The reconstructed document of type D
      */
     public abstract D deconstruct(byte[] data);
 
     /**
-     * Constructs a byte array from a document of type D.
+     * Serializes a document into a byte array for storage.
      *
-     * @param document the document to be serialized
-     * @return the byte array representing the serialized document
+     * @param document The document to serialize
+     * @return The byte array representation of the document
      */
     public abstract byte[] construct(D document);
 
     /**
-     * Creates a document with the given {@code key} as the name.
+     * Asynchronously creates a new document with the specified key.
      *
-     * @param key      The name to assign to the document
-     * @param document The document to create.
-     * @return The CompletableFuture<Void> that holds the functionality for creating the document
+     * <p>The document is written to a new file, failing if the file already exists.
+     *
+     * @param key      The unique identifier for the document
+     * @param document The document to store
+     * @return A CompletableFuture that completes when the operation is done
      */
     public CompletableFuture<Void> create(String key, D document) {
-        return CompletableFuture.runAsync(() -> {
-            Lock lock = locks.computeIfAbsent(key, v -> new ReentrantLock());
-            try {
-                lock.lock();
-                Files.write(path(key), construct(document), StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            } finally {
-                lock.unlock();
-            }
-        }, service);
+        return runAsync(key, () ->
+                Files.write(path(key), construct(document), StandardOpenOption.CREATE_NEW));
     }
 
     /**
-     * Updates a document with the given {@code key} as the name.
+     * Asynchronously deletes a document by its key.
      *
-     * @param key      The name of the document to update.
-     * @param document The document to update.
-     * @return The CompletableFuture<Void> that holds the functionality for updating the document
+     * <p>The document file is removed from the filesystem if it exists.
+     *
+     * @param key The identifier of the document to delete
+     * @return A CompletableFuture that completes when the operation is done
+     * @throws RuntimeException if the deletion fails
+     */
+    public CompletableFuture<Void> delete(String key) {
+        return runAsync(key, () -> {
+            Path filePath = path(key);
+            if (Files.exists(filePath)) {
+                Files.delete(filePath);
+            }
+        });
+    }
+
+    /**
+     * Asynchronously updates an existing document with the specified key.
+     *
+     * <p>The existing file is truncated and replaced with the new document content.
+     *
+     * @param key      The identifier of the document to update
+     * @param document The new document content
+     * @return A CompletableFuture that completes when the operation is done
      */
     public CompletableFuture<Void> update(String key, D document) {
-        return CompletableFuture.runAsync(() -> {
-            Lock lock = locks.computeIfAbsent(key, v -> new ReentrantLock());
-            try {
-                lock.lock();
-                Files.write(path(key), construct(document), StandardOpenOption.WRITE);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            } finally {
-                lock.unlock();
-            }
-        }, service);
+        return runAsync(key, () ->
+                Files.write(path(key), construct(document), StandardOpenOption.TRUNCATE_EXISTING));
     }
 
     /**
-     * Asynchronously appends the document to the existing document with name associated with the given
-     * {@code key}.
+     * Asynchronously appends content to an existing document.
      *
-     * @param key      The name of the document
-     * @param document The document to append to the current one
-     * @return The CompletableFuture<Void> that holds the functionality for appending the document
+     * <p>The new document data is added to the end of the existing file.
+     *
+     * @param key      The identifier of the document to append to
+     * @param document The document content to append
+     * @return A CompletableFuture that completes when the operation is done
      */
     public CompletableFuture<Void> append(String key, D document) {
-        return CompletableFuture.runAsync(() -> {
-            Lock lock = locks.computeIfAbsent(key, v -> new ReentrantLock());
-            try {
-                lock.lock();
-                Files.write(path(key), construct(document), StandardOpenOption.APPEND);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            } finally {
-                lock.unlock();
-            }
-        }, service);
+        return runAsync(key, () ->
+                Files.write(path(key), construct(document), StandardOpenOption.APPEND));
     }
 
     /**
-     * Asynchronously retrieves the document with the given {@code key}.
+     * Asynchronously retrieves a document by its key.
      *
-     * @param key The name of the document
-     * @return The CompletableFuture<D> that is supplied the document
+     * @param key The identifier of the document to retrieve
+     * @return A CompletableFuture supplying the retrieved document
+     * @throws RuntimeException if the document cannot be read
      */
     public CompletableFuture<D> retrieve(String key) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 return deconstruct(Files.readAllBytes(path(key)));
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new RuntimeException("Failed to read document: " + key, e);
             }
         }, service);
     }
 
     /**
-     * @return The path constructed based on the given {@code name}, being the name of the document.
+     * Executes an I/O operation asynchronously with lock protection.
+     *
+     * <p>Uses tryLock() for opportunistic locking and falls back to blocking lock
+     * to minimize contention while ensuring thread safety.
+     *
+     * @param key The key identifying the document being operated on
+     * @param op  The I/O operation to execute
+     * @return A CompletableFuture that completes when the operation is done
+     */
+    private CompletableFuture<Void> runAsync(String key, IOOperation op) {
+        return CompletableFuture.runAsync(() -> {
+            ReentrantLock lock = locks.computeIfAbsent(key, k -> new ReentrantLock());
+            if (lock.tryLock()) {
+                try {
+                    op.execute();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    lock.unlock();
+                }
+            } else {
+                lock.lock();
+                try {
+                    op.execute();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    lock.unlock();
+                }
+            }
+        }, service);
+    }
+
+    /**
+     * Constructs the full file path for a document based on its key.
+     *
+     * @param name The document's identifier
+     * @return The complete Path including folder, name, and extension
      */
     private Path path(String name) {
-        return Paths.get(this.folder, name + '.' + this.extension);
+        return folder.resolve(name + "." + extension);
+    }
+
+    /**
+     * Functional interface for I/O operations that may throw IOException.
+     */
+    @FunctionalInterface
+    private interface IOOperation {
+
+        /**
+         * Executes the I/O operation.
+         *
+         * @throws IOException if the operation fails
+         */
+        void execute() throws IOException;
     }
 }
