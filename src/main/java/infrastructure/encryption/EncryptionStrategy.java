@@ -12,15 +12,6 @@ package infrastructure.encryption;
  * essential methods: {@link #encrypt(byte[])} for encryption and {@link #decrypt(byte[])}
  * for decryption.
  *
- * <p><strong>Implementing Classes:</strong></p>
- * <p>Classes that implement this interface must ensure that they can handle
- * encryption and decryption operations in a secure manner. Example implementations
- * include:</p>
- * <ul>
- *   <li>{@code AES} - An implementation that uses the AES (Advanced Encryption Standard) algorithm.</li>
- *   <li>{@code RSA} - An implementation that uses the RSA (Rivest-Shamir-Adleman) algorithm.</li>
- * </ul>
- *
  * <p>This interface does not define the specific algorithm or key management
  * processes, leaving those details to the implementing classes. It is recommended
  * that implementations provide robust error handling and security features, such as
@@ -42,9 +33,22 @@ package infrastructure.encryption;
  * responsibility of the implementing class to ensure thread safety if instances
  * are to be used concurrently across multiple threads.</p>
  *
+ * <p><strong>Implementing Classes:</strong></p>
+ * <p>Classes that implement this interface must ensure that they can handle
+ * encryption and decryption operations in a secure manner. Example implementations
+ * include:</p>
+ * <ul>
+ *   <li>{@code AES} - An implementation that uses the AES (Advanced Encryption Standard) algorithm.</li>
+ *   <li>{@code RSA} - An implementation that uses the RSA (Rivest-Shamir-Adleman) algorithm.</li>
+ *   <li>{@code ChaCha20Poly1305} - An implementation that uses the ChaCha20 stream cipher with Poly1305 authentication.</li>
+ *   <li>{@code ECC} - An implementation that uses Elliptic Curve Integrated Encryption Scheme (ECIES).</li>
+ *   <li>{@code AESGCM} - An implementation that uses AES in Galois/Counter Mode for authenticated encryption.</li>
+ *   <li>{@code Blowfish} - An implementation that uses the Blowfish symmetric-key block cipher.</li>
+ *   <li>{@code SHA256} - An implementation that uses the SHA-256 hash function (one-way).</li>
+ *   <li>{@code SHA512} - An implementation that uses the SHA-512 hash function (one-way).</li>
+ * </ul>
+ *
  * @author Albert Beaupre
- * @see AES
- * @see RSA
  * @see java.security.Key
  * @see javax.crypto.Cipher
  * @see javax.crypto.SecretKey

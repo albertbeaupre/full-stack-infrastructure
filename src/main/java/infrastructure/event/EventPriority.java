@@ -6,10 +6,12 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * The {@code EventPriority} annotation interface is used on methods within an {@code EventListener}
- * to determine their priority to be handled at when an {@code Event} is published. Lower priority
- * levels mean that the {@code Event} will be handled later. Higher priority means it will be handled
- * sooner.
+ * The {@code EventPriority} annotation specifies the execution order of methods within an
+ * {@code EventListener} when handling an {@code Event}. Higher priority values indicate
+ * that the method will be invoked earlier, while lower values delay execution.
+ *
+ * <p>
+ * This annotation is processed at runtime by the {@code EventPublisher}.
  *
  * @author Albert Beaupre
  * @since August 29th, 2024
@@ -19,11 +21,10 @@ import java.lang.annotation.Target;
 public @interface EventPriority {
 
     /**
-     * The priority value (default of 0) used to determine what priority level
-     * the method within an {@code EventListener} is going to be handled at.
+     * The priority value determining the order of execution. Higher values result in
+     * earlier handling; defaults to {@code 0} (normal priority).
      *
      * @return the priority level
      */
     int priority() default 0;
-
 }

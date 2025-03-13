@@ -24,7 +24,7 @@ public class EventConsumeTest {
     void testConsume() {
         publisher.publish(event);
 
-        assertTrue(event.consumed());
+        assertTrue(event.isConsumed());
         assertEquals("Hello", event.message);
     }
 }

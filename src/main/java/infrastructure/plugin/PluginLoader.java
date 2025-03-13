@@ -1,83 +1,312 @@
 package infrastructure.plugin;
 
 import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.jar.JarFile;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * The PluginLoader class is responsible for loading external plugins from JAR files.
- * It uses a separate thread pool to load plugins concurrently.
+ * A utility class for loading plugins from JAR files asynchronously.
+ * Plugins are expected to implement the {@link Plugin} interface, and this class manages their discovery,
+ * loading, and instantiation in a thread-safe and efficient manner.
  *
- * <p>
- * This class provides methods to load plugins from a specified folder or directly from a JAR file.
- * It uses a single-threaded executor service to handle loading tasks asynchronously.
- * </p>
+ * <p>This class uses a configurable thread pool to load plugins concurrently, ensuring scalability while
+ * preventing resource exhaustion. It provides detailed logging for debugging and monitoring using
+ * Java's built-in {@link Logger}, and it maintains a list of successfully loaded plugins for later access.</p>
  *
- * <p>
- * Plugins are loaded by creating a separate class loader for each JAR file. Each plugin JAR file is scanned
- * for classes with a ".class" extension, and those classes are loaded using the respective class loader.
- * </p>
+ * <p>Example usage:</p>
+ * <pre>
+ * PluginLoader loader = new PluginLoader(4); // Use 4 threads
+ * loader.loadFromFolder(new File("plugins"));
+ * List<Plugin> plugins = loader.getLoadedPlugins();
+ * loader.shutdown();
+ * </pre>
  *
  * @author Albert Beaupre
- * @version 1.0
+ * @version 2.0
  * @since May 1st, 2024
  */
 public class PluginLoader {
 
-    private static final ExecutorService executor = Executors.newSingleThreadExecutor(); // ExecutorService for managing plugin loading tasks
+    /** Logger instance for tracking plugin loading events and errors. */
+    private static final Logger logger = Logger.getLogger(PluginLoader.class.getName());
+
+    /** Default number of threads for the executor service if not specified. */
+    private static final int DEFAULT_THREAD_POOL_SIZE = 2;
+
+    /** Maximum time to wait for executor shutdown in seconds. */
+    private static final int SHUTDOWN_TIMEOUT_SECONDS = 10;
+
+    /** Executor service for managing asynchronous plugin loading tasks. */
+    private final ExecutorService executor;
+
+    /** Thread-safe list of successfully loaded plugins. */
+    private final List<Plugin> loadedPlugins;
 
     /**
-     * Loads all plugin JAR files found in the specified folder.
-     * Each plugin is loaded in a separate thread using the executor.
+     * Constructs a {@code PluginLoader} with a specified thread pool size.
      *
-     * @param folder The folder containing plugin JAR files.
+     * @param threadPoolSize The number of threads to use for loading plugins. Must be positive.
+     * @throws IllegalArgumentException if {@code threadPoolSize} is less than 1.
      */
-    public static void loadFromFolder(File folder) {
-        // List all files in the folder that have a .jar extension
-        File[] jarFiles = folder.listFiles(file -> file.isFile() && file.getName().endsWith(".jar"));
-        if (jarFiles == null)
-            return;
+    public PluginLoader(int threadPoolSize) {
+        if (threadPoolSize < 1)
+            throw new IllegalArgumentException("Thread pool size must be at least 1, got: " + threadPoolSize);
 
-        // Submit a task to load each plugin JAR file
-        for (File file : jarFiles) {
-            loadFromFile(file);
-        }
-
-        // Shutdown the executor after all tasks are submitted
-        executor.shutdown();
+        this.executor = Executors.newFixedThreadPool(threadPoolSize);
+        this.loadedPlugins = Collections.synchronizedList(new ArrayList<>());
+        logger.log(Level.INFO, "Initialized PluginLoader with {0} threads", threadPoolSize);
     }
 
     /**
-     * Loads a plugin JAR file by creating a separate class loader and loading its classes.
-     *
-     * @param file The plugin JAR file to load.
-     * @return A Future representing the asynchronous loading task.
+     * Constructs a {@code PluginLoader} with the default thread pool size ({@value DEFAULT_THREAD_POOL_SIZE}).
      */
-    public static Future<?> loadFromFile(File file) {
-        return executor.submit(() -> {
-            try (URLClassLoader classLoader = new URLClassLoader(new URL[]{file.toURI().toURL()}, ClassLoader.getSystemClassLoader())) {
-                try (JarFile jar = new JarFile(file)) {
-                    // Iterate through all entries in the JAR file
-                    jar.stream()
-                            .filter(entry -> entry.getName().endsWith(".class"))
-                            .map(entry -> entry.getName().replace("/", ".").replace(".class", ""))
-                            .forEach(className -> {
-                                try {
-                                    // Load each class using the plugin's class loader
-                                    classLoader.loadClass(className);
-                                } catch (ClassNotFoundException e) {
-                                    e.printStackTrace();
-                                }
-                            });
+    public PluginLoader() {
+        this(DEFAULT_THREAD_POOL_SIZE);
+    }
+
+    /**
+     * Loads all plugin JAR files from the specified folder asynchronously.
+     * Each JAR file is processed concurrently up to the configured thread pool size, and the method blocks
+     * until all plugins are loaded or an error occurs.
+     *
+     * @param folder The folder containing plugin JAR files. Must be a valid, existing directory.
+     * @throws IllegalArgumentException if {@code folder} is null, does not exist, or is not a directory.
+     * @throws PluginLoadingException if an unrecoverable error occurs during loading.
+     */
+    public void loadFromFolder(File folder) {
+        validateFolder(folder);
+        File[] jarFiles = listJarFiles(folder);
+        if (jarFiles.length == 0) {
+            logger.log(Level.WARNING, "No JAR files found in folder: {0}", folder.getAbsolutePath());
+            return;
+        }
+
+        logger.log(Level.INFO, "Found {0} JAR files in folder: {1}", new Object[]{jarFiles.length, folder.getAbsolutePath()});
+        List<CompletableFuture<List<Plugin>>> futures = submitLoadingTasks(jarFiles);
+        waitForCompletion(futures);
+    }
+
+    /**
+     * Loads plugins from a single JAR file asynchronously.
+     * Only classes implementing {@link Plugin} are loaded and instantiated.
+     *
+     * @param file The JAR file to load plugins from. Must be a valid, readable JAR file.
+     * @return A {@link CompletableFuture} containing the list of loaded plugins from this JAR file.
+     * @throws IllegalArgumentException if {@code file} is null, does not exist, or is not a JAR file.
+     */
+    public CompletableFuture<List<Plugin>> loadFromFile(File file) {
+        validateFile(file);
+        return CompletableFuture.supplyAsync(() -> loadPluginsFromJar(file), executor)
+                .exceptionally(throwable -> {
+                    logger.log(Level.SEVERE, "Failed to load plugins from JAR: " + file.getName(), throwable);
+                    return Collections.emptyList(); // Return empty list on failure
+                });
+    }
+
+    /**
+     * Returns an unmodifiable view of the currently loaded plugins.
+     *
+     * @return A thread-safe, unmodifiable list of loaded {@link Plugin} instances.
+     */
+    public List<Plugin> getLoadedPlugins() {
+        return Collections.unmodifiableList(loadedPlugins);
+    }
+
+    /**
+     * Shuts down the internal executor service gracefully, waiting up to {@value SHUTDOWN_TIMEOUT_SECONDS}
+     * seconds for all tasks to complete.
+     *
+     * <p>This method should be called when the {@code PluginLoader} is no longer needed to ensure proper
+     * resource cleanup.</p>
+     */
+    public void shutdown() {
+        if (!executor.isShutdown()) {
+            logger.info("Shutting down PluginLoader executor service");
+            executor.shutdown();
+            try {
+                if (!executor.awaitTermination(SHUTDOWN_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+                    logger.log(Level.WARNING, "Executor did not terminate within {0} seconds, forcing shutdown", SHUTDOWN_TIMEOUT_SECONDS);
+                    executor.shutdownNow();
                 }
-            } catch (Exception e) {
-                // Handle exceptions that may occur during plugin loading
-                e.printStackTrace();
+            } catch (InterruptedException e) {
+                logger.log(Level.SEVERE, "Interrupted while shutting down executor", e);
+                executor.shutdownNow();
+                Thread.currentThread().interrupt(); // Preserve interrupt status
             }
-        });
+        }
+    }
+
+    /**
+     * Validates that the provided folder is a valid directory.
+     *
+     * @param folder The folder to validate.
+     * @throws IllegalArgumentException if the folder is invalid.
+     */
+    private void validateFolder(File folder) {
+        Objects.requireNonNull(folder, "Folder cannot be null");
+        if (!folder.exists() || !folder.isDirectory())
+            throw new IllegalArgumentException("Invalid folder: " + folder.getAbsolutePath() + " (must exist and be a directory)");
+    }
+
+    /**
+     * Validates that the provided file is a valid JAR file.
+     *
+     * @param file The file to validate.
+     * @throws IllegalArgumentException if the file is invalid.
+     */
+    private void validateFile(File file) {
+        Objects.requireNonNull(file, "File cannot be null");
+        if (!file.exists() || !file.isFile() || !file.getName().endsWith(".jar"))
+            throw new IllegalArgumentException("Invalid JAR file: " + file.getAbsolutePath() + " (must exist and end with .jar)");
+    }
+
+    /**
+     * Lists all JAR files in the specified folder.
+     *
+     * @param folder The folder to scan.
+     * @return An array of JAR files, or an empty array if none are found.
+     */
+    private File[] listJarFiles(File folder) {
+        File[] jarFiles = folder.listFiles(file -> file.isFile() && file.getName().endsWith(".jar"));
+        return jarFiles != null ? jarFiles : new File[0];
+    }
+
+    /**
+     * Submits loading tasks for all JAR files and returns the list of futures.
+     *
+     * @param jarFiles The array of JAR files to process.
+     * @return A list of {@link CompletableFuture} instances representing the loading tasks.
+     */
+    private List<CompletableFuture<List<Plugin>>> submitLoadingTasks(File[] jarFiles) {
+        List<CompletableFuture<List<Plugin>>> futures = new ArrayList<>(jarFiles.length);
+        for (File file : jarFiles) {
+            futures.add(loadFromFile(file).thenApply(plugins -> {
+                synchronized (loadedPlugins) {
+                    loadedPlugins.addAll(plugins);
+                }
+                return plugins;
+            }));
+        }
+        return futures;
+    }
+
+    /**
+     * Waits for all loading tasks to complete.
+     *
+     * @param futures The list of futures to wait for.
+     * @throws PluginLoadingException if an unrecoverable error occurs.
+     */
+    private void waitForCompletion(List<CompletableFuture<List<Plugin>>> futures) {
+        try {
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+            logger.log(Level.INFO, "Successfully loaded {0} plugins", loadedPlugins.size());
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Error during plugin loading", e);
+            throw new PluginLoadingException("Failed to load plugins from folder", e);
+        }
+    }
+
+    /**
+     * Loads and instantiates plugins from a JAR file.
+     *
+     * @param file The JAR file to process.
+     * @return A list of loaded {@link Plugin} instances.
+     */
+    private List<Plugin> loadPluginsFromJar(File file) {
+        List<Plugin> plugins = new ArrayList<>();
+        try (URLClassLoader classLoader = createClassLoader(file)) {
+            try (JarFile jar = new JarFile(file)) {
+                jar.stream()
+                        .filter(entry -> entry.getName().endsWith(".class"))
+                        .map(entry -> entry.getName().replace("/", ".").replace(".class", ""))
+                        .forEach(className -> loadAndInstantiateClass(className, classLoader, file, plugins));
+                logger.log(Level.FINE, "Loaded {0} plugins from JAR: {1}", new Object[]{plugins.size(), file.getName()});
+            }
+        } catch (IOException e) {
+            logger.log(Level.SEVERE, "Failed to process JAR file: " + file.getName(), e);
+        }
+        return plugins;
+    }
+
+    /**
+     * Creates a {@link URLClassLoader} for the specified JAR file.
+     *
+     * @param file The JAR file.
+     * @return A new {@link URLClassLoader} instance.
+     * @throws IOException if the URL conversion fails.
+     */
+    private URLClassLoader createClassLoader(File file) throws IOException {
+        try {
+            return new URLClassLoader(new URL[]{file.toURI().toURL()}, ClassLoader.getSystemClassLoader());
+        } catch (MalformedURLException e) {
+            throw new IOException("Invalid JAR file URL: " + file.getAbsolutePath(), e);
+        }
+    }
+
+    /**
+     * Loads and instantiates a single class if it implements {@link Plugin}.
+     *
+     * @param className The fully qualified class name.
+     * @param classLoader The class loader to use.
+     * @param file The JAR file being processed (for logging).
+     * @param plugins The list to add instantiated plugins to.
+     */
+    private void loadAndInstantiateClass(String className, URLClassLoader classLoader, File file, List<Plugin> plugins) {
+        try {
+            Class<?> clazz = classLoader.loadClass(className);
+            if (isValidPluginClass(clazz)) {
+                Plugin plugin = instantiatePlugin(clazz);
+                plugins.add(plugin);
+                logger.log(Level.FINE, "Loaded plugin: {0} from JAR: {1}", new Object[]{className, file.getName()});
+            }
+        } catch (ClassNotFoundException e) {
+            logger.log(Level.SEVERE, "Class not found: " + className + " in JAR: " + file.getName(), e);
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Failed to instantiate plugin: " + className + " in JAR: " + file.getName(), e);
+        }
+    }
+
+    /**
+     * Checks if a class is a valid plugin (implements {@link Plugin}, not abstract, not an interface).
+     *
+     * @param clazz The class to check.
+     * @return {@code true} if the class is a valid plugin, {@code false} otherwise.
+     */
+    private boolean isValidPluginClass(Class<?> clazz) {
+        return Plugin.class.isAssignableFrom(clazz) && !clazz.isInterface() && !Modifier.isAbstract(clazz.getModifiers());
+    }
+
+    /**
+     * Instantiates a plugin class using its no-arg constructor.
+     *
+     * @param clazz The class to instantiate.
+     * @return The instantiated {@link Plugin} instance.
+     * @throws ReflectiveOperationException if instantiation fails.
+     */
+    private Plugin instantiatePlugin(Class<?> clazz) throws ReflectiveOperationException {
+        try {
+            Plugin plugin = (Plugin) clazz.getDeclaredConstructor().newInstance();
+            plugin.initialize();
+            return plugin;
+        } catch (NoSuchMethodException e) {
+            throw new ReflectiveOperationException("Plugin class " + clazz.getName() + " must have a no-arg constructor", e);
+        } catch (InvocationTargetException e) {
+            throw new ReflectiveOperationException("Plugin initialization failed for " + clazz.getName(), e.getCause());
+        }
     }
 }

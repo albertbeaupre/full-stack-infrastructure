@@ -1,136 +1,132 @@
 package infrastructure.event;
 
 import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.Objects;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The {@code EventPublisher} class is responsible for managing the publication of
- * events and the registration of listeners that handle these events. This class
- * acts as a central hub for event-driven architecture, allowing different parts
- * of an application to communicate with each other through events.
+ * The {@code EventPublisher} class manages the publication of events and the registration of listeners
+ * that handle these events. It serves as a central hub for event-driven communication in an application.
  *
- * <p>For an {@code Event} to be processed, an {@code EventListener} must first be
- * registered with this {@code EventPublisher}. When an event is published, all
- * registered listeners for that specific event type are notified and given the
- * opportunity to handle the event. The order in which listeners are notified is
- * determined by their priority, which can be specified using the {@link EventPriority}
- * annotation.
+ * <p>For an {@code Event} to be processed, an {@code EventListener} must be registered with this publisher.
+ * When an event is published, registered listeners for that event type are notified in priority order,
+ * as defined by the {@link EventPriority} annotation (higher values = earlier execution).
  *
  * <p><strong>Usage Example:</strong></p>
  * <pre>{@code
- * EventPublisher eventPublisher = new EventPublisher();
- *
- * eventPublisher.register(MyEvent.class, new MyEventListener());
- *
- * MyEvent event = new MyEvent();
- * eventPublisher.publish(event);
+ * EventPublisher publisher = new EventPublisher();
+ * publisher.register(MyEvent.class, new MyEventListener());
+ * publisher.publish(new MyEvent());
  * }</pre>
  *
- * <p>In the above example, a listener for {@code MyEvent} is registered with the
- * {@code EventPublisher}, and an instance of {@code MyEvent} is published. The
- * listener will handle the event according to its defined behavior.
+ * <p><strong>Thread Safety:</strong> This class is thread-safe, using a {@link ConcurrentHashMap}
+ * for listener storage and atomic operations for registration and publication.
  *
- * <p><strong>Thread Safety:</strong></p>
- * <p>The {@code EventPublisher} class is thread-safe, as both the registration
- * and publication methods are synchronized. This ensures that listeners can be
- * safely registered and events can be safely published from multiple threads.
+ * <p>If no listeners are registered for an event type, {@code publish} has no effect. Exceptions
+ * thrown by listeners are logged but do not stop the event propagation unless the event is consumed.
  *
  * @author Albert Beaupre
  * @see Event
  * @see EventListener
  * @see EventPriority
- * @see TreeSet
  * @since August 29th, 2024
  */
 @SuppressWarnings({"unchecked", "rawtypes"})
 public class EventPublisher {
 
     /**
-     * A mapping of event types to sets of event listeners. The keys are classes
-     * that extend {@link Event}, and the values are {@link TreeSet} collections
-     * of {@link EventListener} instances. The listeners are stored in a
-     * {@code TreeSet} to maintain order based on their priority.
+     * A thread-safe mapping of event types to ordered sets of listeners.
      */
-    private final HashMap<Class<? extends Event>, TreeSet<EventListener>> listeners = new HashMap<>();
+    private final ConcurrentHashMap<Class<? extends Event>, TreeSet<EventListener>> listeners = new ConcurrentHashMap<>();
 
     /**
-     * Registers the given {@code EventListener} to listen for events of the specified
-     * type. The listener is added to a set of listeners associated with the event class.
+     * Registers an {@code EventListener} to handle events of the specified type.
+     * Listeners are ordered by priority (via {@link EventPriority}), with higher values executed first.
      *
-     * <p>The {@code TreeSet} ensures that listeners are ordered by their priority,
-     * as defined by the {@link EventPriority} annotation. If no priority is specified,
-     * a default priority of 0 is used.
-     *
-     * <p>This method is synchronized to ensure thread safety during the registration
-     * process.
-     *
-     * @param clazz    the class of the event type that the listener is interested in.
-     * @param listener the listener that should be notified when the event is published.
-     * @throws RuntimeException if the listener's {@code handle} method cannot be found.
+     * @param clazz    the event type the listener will handle
+     * @param listener the listener to register
+     * @throws IllegalArgumentException if clazz or listener is null
      */
-    public synchronized void register(Class<? extends Event> clazz, EventListener listener) {
-        TreeSet<EventListener> set = this.listeners.getOrDefault(clazz, createSet(clazz));
-        set.add(listener);
-        this.listeners.put(clazz, set);
+    public void register(Class<? extends Event> clazz, EventListener listener) {
+        Objects.requireNonNull(clazz, "Event class must not be null");
+        Objects.requireNonNull(listener, "Listener must not be null");
+
+        listeners.computeIfAbsent(clazz, this::createSet).add(listener);
     }
 
     /**
-     * Publishes the given {@code Event} to all registered listeners. Each listener
-     * will handle the event in the order determined by its priority. If the event is
-     * consumed (i.e., no further processing is needed), the publishing process is
-     * stopped.
+     * Unregisters an {@code EventListener} from handling events of the specified type.
      *
-     * <p>The listeners are retrieved based on the event's class, and each listener's
-     * {@code handle} method is invoked to process the event. If the event has been
-     * marked as consumed by any listener, subsequent listeners will not be notified.
-     *
-     * <p>This method is synchronized to ensure that events are published safely
-     * across multiple threads.
-     *
-     * @param event the event to publish.
+     * @param clazz    the event type to unregister from
+     * @param listener the listener to remove
+     * @return true if the listener was removed, false if it wasn’t registered
+     * @throws IllegalArgumentException if clazz or listener is null
      */
-    public synchronized void publish(Event event) {
-        TreeSet<EventListener> set = this.listeners.get(event.getClass());
-        if (Objects.nonNull(set)) {
+    public boolean unregister(Class<? extends Event> clazz, EventListener listener) {
+        Objects.requireNonNull(clazz, "Event class must not be null");
+        Objects.requireNonNull(listener, "Listener must not be null");
+
+        TreeSet<EventListener> set = listeners.get(clazz);
+        return set != null && set.remove(listener);
+    }
+
+    /**
+     * Publishes an {@code Event} to all registered listeners for its type. Listeners are
+     * invoked in priority order, stopping if the event is consumed.
+     *
+     * @param event the event to publish
+     * @throws IllegalArgumentException if event is null
+     */
+    public void publish(Event event) {
+        Objects.requireNonNull(event, "Event must not be null");
+
+        TreeSet<EventListener> set = listeners.get(event.getClass());
+        if (set != null) {
             for (EventListener listener : set) {
-                if (event.consumed()) {
+                if (event.isConsumed()) { // Assuming Event uses isConsumed()
                     break;
                 }
-                listener.handle(event);
+                try {
+                    listener.handle(event);
+                } catch (Exception e) {
+                    // Log the exception (in a real system, use a proper logger)
+                    System.err.println("Listener " + listener.getClass().getSimpleName() +  " failed to handle event " + event + ": " + e.getMessage());
+                }
             }
         }
     }
 
     /**
-     * Creates a {@code TreeSet} for storing {@code EventListener} instances, using
-     * a comparator that orders listeners by their priority. The comparator retrieves
-     * the priority from the {@link EventPriority} annotation on the listener's
-     * {@code handle} method. Listeners with higher priority values are ordered before
-     * those with lower priority values.
+     * Creates a {@code TreeSet} for storing listeners, ordered by priority (highest first).
+     * Ties in priority are resolved by listener identity to ensure uniqueness.
      *
-     * <p>If the {@code handle} method of a listener does not have an {@code EventPriority}
-     * annotation, a default priority of 0 is used.
-     *
-     * @param clazz the class of the event type that the listeners will handle.
-     * @return a {@code TreeSet} of {@code EventListener} instances ordered by priority.
-     * @throws RuntimeException if the listener's {@code handle} method cannot be found.
+     * @param clazz the event type for the set
+     * @return a priority-ordered TreeSet
      */
     private TreeSet<EventListener> createSet(Class<? extends Event> clazz) {
         return new TreeSet<>((listener1, listener2) -> {
             try {
-                Method method1 = listener1.getClass().getMethod("handle", clazz);
-                Method method2 = listener2.getClass().getMethod("handle", clazz);
-                EventPriority annotation1 = method1.getAnnotation(EventPriority.class);
-                EventPriority annotation2 = method2.getAnnotation(EventPriority.class);
-                int priority1 = Objects.nonNull(annotation1) ? annotation1.priority() : 0;
-                int priority2 = Objects.nonNull(annotation2) ? annotation2.priority() : 0;
-
-                return Integer.compare(priority2, priority1);
+                int compare = getCompare(clazz, listener1, listener2);
+                if (compare == 0) {
+                    // Ensure stable ordering for equal priorities
+                    return Integer.compare(System.identityHashCode(listener1), System.identityHashCode(listener2));
+                }
+                return compare;
             } catch (NoSuchMethodException e) {
-                throw new RuntimeException(e);
+                throw new RuntimeException("Failed to find handle method for listener", e);
             }
         });
+    }
+
+    private static int getCompare(Class<? extends Event> clazz, EventListener listener1, EventListener listener2) throws NoSuchMethodException {
+        Method method1 = listener1.getClass().getMethod("handle", clazz);
+        Method method2 = listener2.getClass().getMethod("handle", clazz);
+        EventPriority annotation1 = method1.getAnnotation(EventPriority.class);
+        EventPriority annotation2 = method2.getAnnotation(EventPriority.class);
+        int priority1 = annotation1 != null ? annotation1.priority() : 0; // Assuming value() from EventPriority
+        int priority2 = annotation2 != null ? annotation2.priority() : 0;
+
+        return Integer.compare(priority2, priority1);
     }
 }

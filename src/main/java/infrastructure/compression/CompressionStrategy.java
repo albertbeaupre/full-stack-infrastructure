@@ -91,8 +91,6 @@ public interface CompressionStrategy {
      * and decompression, respectively.
      */
     CompressionStrategy Deflate = new CompressionStrategy() {
-        final Deflater deflater = new Deflater();
-        final Inflater inflater = new Inflater();
 
         /**
          * Compresses the given byte array using the Deflate compression algorithm.
