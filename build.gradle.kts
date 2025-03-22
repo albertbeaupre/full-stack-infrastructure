@@ -2,7 +2,7 @@ plugins {
     java
     idea
     id("me.champeau.jmh") version "0.7.2" // JMH plugin
-    id("maven-publish") // Added for publishing to JitPack
+    id("maven-publish") // For publishing to JitPack
 }
 
 java {
@@ -29,8 +29,8 @@ tasks.withType<JavaExec> {
     jvmArgs("--enable-preview") // Enable preview for runtime execution
 }
 
-group = "full-stack" // This will be part of your artifact's groupId
-version = "1.0"   // Version for your library
+group = "backend"
+version = "1.0"
 val gdxVersion = "1.13.1"
 val ph_cssVersion = "7.0.4"
 val netty_version = "4.1.108.Final"
@@ -38,7 +38,7 @@ val jmh_version = "1.37"
 
 repositories {
     mavenCentral()
-    maven { url 'https://jitpack.io' } // Added JitPack repository (optional for local testing)
+    maven { url = uri("https://jitpack.io") } // Updated to use uri() for Kotlin DSL
 }
 
 dependencies {
@@ -61,12 +61,12 @@ tasks.test {
 // Configure publishing for JitPack
 publishing {
     publications {
-        mavenJava(MavenPublication) {
-            groupId = group.toString()           // e.g., "backend"
-            artifactId = "full-stack-infrastructure"     // Replace with your desired artifact name
-            version = version.toString()         // e.g., "1.0"
+        create<MavenPublication>("maven") { // Create a publication named "maven"
+            groupId = group.toString()       // e.g., "backend"
+            artifactId = "full-stack-infrastructure" // Matches your repo name
+            version = version.toString()     // e.g., "1.0"
 
-            from(components.java)                // Publish the Java component (your compiled code)
+            from(components["java"])         // Publish the Java component
         }
     }
 }
