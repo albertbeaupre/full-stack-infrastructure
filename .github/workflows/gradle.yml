@@ -1,4 +1,4 @@
-# This workflow builds a Java project with Gradle, caches dependencies, and submits a dependency graph.
+# This workflow builds a Java project with Gradle, caches dependencies, publishes to GitHub Packages, and submits a dependency graph.
 # For more info: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-gradle
 
 name: Java CI with Gradle
@@ -10,10 +10,11 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build:
+  build-and-publish:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      packages: write  # Required to publish to GitHub Packages
 
     steps:
       - uses: actions/checkout@v4
@@ -31,9 +32,17 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
 
+      # Build the project
       - name: Build with Gradle Wrapper
         run: ./gradlew build
 
+      # Publish to GitHub Packages
+      - name: Publish to GitHub Packages
+        run: ./gradlew publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Token for authentication
+
+      # Optional: Upload artifacts for manual download
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:

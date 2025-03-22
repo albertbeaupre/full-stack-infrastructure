@@ -1,8 +1,8 @@
 plugins {
     java
     idea
-    id("me.champeau.jmh") version "0.7.2" // JMH plugin
-    id("maven-publish") // For publishing to JitPack
+    id("me.champeau.jmh") version "0.7.2"
+    id("maven-publish")
 }
 
 java {
@@ -18,15 +18,15 @@ idea {
 }
 
 tasks.withType<JavaCompile> {
-    options.compilerArgs.addAll(listOf("--enable-preview", "--release", "22")) // Enable preview for compilation
+    options.compilerArgs.addAll(listOf("--enable-preview", "--release", "22"))
 }
 
 tasks.withType<Test> {
-    jvmArgs("--enable-preview") // Enable preview for test execution
+    jvmArgs("--enable-preview")
 }
 
 tasks.withType<JavaExec> {
-    jvmArgs("--enable-preview") // Enable preview for runtime execution
+    jvmArgs("--enable-preview")
 }
 
 group = "backend"
@@ -38,11 +38,10 @@ val jmh_version = "1.37"
 
 repositories {
     mavenCentral()
-    maven { url = uri("https://jitpack.io") } // Updated to use uri() for Kotlin DSL
+    maven { url = uri("https://jitpack.io") }
 }
 
 dependencies {
-    // Existing dependencies
     testImplementation(platform("org.junit:junit-bom:5.10.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     implementation("io.netty:netty-all:$netty_version")
@@ -58,15 +57,23 @@ tasks.test {
     useJUnitPlatform()
 }
 
-// Configure publishing for JitPack
 publishing {
     publications {
-        create<MavenPublication>("maven") { // Create a publication named "maven"
-            groupId = group.toString()       // e.g., "backend"
-            artifactId = "full-stack-infrastructure" // Matches your repo name
-            version = version.toString()     // e.g., "1.0"
-
-            from(components["java"])         // Publish the Java component
+        create<MavenPublication>("maven") {
+            groupId = group.toString()
+            artifactId = "full-stack-infrastructure"
+            version = version.toString()
+            from(components["java"])
+        }
+    }
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/albertBeaupre/full-stack-infrastructure")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR") ?: "default-actor"
+                password = System.getenv("GITHUB_TOKEN") ?: "default-token"
+            }
         }
     }
 }
