@@ -30,8 +30,8 @@ tasks.withType<JavaExec> {
     jvmArgs("--enable-preview") // Still valid for Java 17 preview features
 }
 
-group = "backend"
-version = "1.0"
+group = "full-stack"
+version = "0.1"
 val gdxVersion = "1.13.1"
 val ph_cssVersion = "7.0.4"
 val netty_version = "4.1.108.Final"
@@ -70,7 +70,7 @@ publishing {
     repositories {
         maven {
             name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/AlbertBeaupre/full-stack-infrastructure")
+            url = uri("https://maven.pkg.github.com/albertBeaupre/full-stack-infrastructure")
             credentials {
                 username = System.getenv("GITHUB_ACTOR") ?: "default-actor"
                 password = System.getenv("GITHUB_TOKEN") ?: "default-token"
