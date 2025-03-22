@@ -254,7 +254,7 @@ public class Text {
         } else if (bytes >= KILOBYTE) {
             return String.format("%.2fKB", bytes / (double) KILOBYTE);
         } else {
-            return STR."\{bytes} B";
+            return bytes + "B";
         }
     }
 

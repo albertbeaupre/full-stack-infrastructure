@@ -308,7 +308,7 @@ public abstract class ChunkDatabase<K, D> {
      * @throws NullPointerException If the key does not exist in the database.
      */
     public CompletableFuture<Void> delete(final K key) {
-        Lock lock = locks.computeIfAbsent(key, _ -> new ReentrantLock());
+        Lock lock = locks.computeIfAbsent(key, l -> new ReentrantLock());
 
         return CompletableFuture.runAsync(() -> {
             lock.lock();
