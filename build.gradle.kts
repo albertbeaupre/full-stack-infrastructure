@@ -6,9 +6,11 @@ plugins {
 }
 
 java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(22))
-    }
+    // Optionally keep toolchain for local development, but ensure it matches the CI environment
+    // Commenting out for now to use the JDK from actions/setup-java
+    // toolchain {
+    //     languageVersion.set(JavaLanguageVersion.of(22))
+    // }
 }
 
 idea {
@@ -69,7 +71,7 @@ publishing {
     repositories {
         maven {
             name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/albertBeaupre/full-stack-infrastructure")
+            url = uri("https://maven.pkg.github.com/AlbertBeaupre/full-stack-infrastructure")
             credentials {
                 username = System.getenv("GITHUB_ACTOR") ?: "default-actor"
                 password = System.getenv("GITHUB_TOKEN") ?: "default-token"
