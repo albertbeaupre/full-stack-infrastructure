@@ -6,11 +6,10 @@ plugins {
 }
 
 java {
-    // Optionally keep toolchain for local development, but ensure it matches the CI environment
-    // Commenting out for now to use the JDK from actions/setup-java
-    // toolchain {
-    //     languageVersion.set(JavaLanguageVersion.of(22))
-    // }
+    // Set toolchain to Java 17 for consistency
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
 }
 
 idea {
@@ -20,15 +19,15 @@ idea {
 }
 
 tasks.withType<JavaCompile> {
-    options.compilerArgs.addAll(listOf("--enable-preview", "--release", "22"))
+    options.compilerArgs.addAll(listOf("--enable-preview", "--release", "17")) // Updated to 17
 }
 
 tasks.withType<Test> {
-    jvmArgs("--enable-preview")
+    jvmArgs("--enable-preview") // Still valid for Java 17 preview features
 }
 
 tasks.withType<JavaExec> {
-    jvmArgs("--enable-preview")
+    jvmArgs("--enable-preview") // Still valid for Java 17 preview features
 }
 
 group = "backend"
