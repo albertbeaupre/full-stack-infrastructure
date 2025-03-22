@@ -1,6 +1,8 @@
 package infrastructure.server;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Implements a circuit breaker pattern to manage server reliability and prevent
@@ -19,8 +21,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * <p>Thread Safety: All methods are synchronized to ensure thread-safe state
  * transitions. The AtomicInteger provides concurrent failure counting.
+ *
+ * @author Albert Beaupre
+ * @since March 13th, 2025
  */
 public class CircuitBreaker {
+    private static final Logger LOGGER = Logger.getLogger(CircuitBreaker.class.getName());
     private static final int FAILURE_THRESHOLD = 5;
     private static final long RESET_TIMEOUT_MS = 30_000; // 30 seconds
 
@@ -43,7 +49,7 @@ public class CircuitBreaker {
             if (currentTime - lastFailureTime > RESET_TIMEOUT_MS) {
                 isOpen = false;
                 failureCount.set(0);
-                // TODO: Add logging: "Circuit reset after timeout"
+                LOGGER.log(Level.INFO, "Circuit reset after timeout of {0}ms", RESET_TIMEOUT_MS);
                 return true;
             }
             return false;
@@ -59,7 +65,7 @@ public class CircuitBreaker {
     public synchronized void recordSuccess() {
         failureCount.set(0);
         isOpen = false;
-        // TODO: Add logging: "Circuit success recorded"
+        LOGGER.log(Level.INFO, "Circuit success recorded; failure count reset to 0");
     }
 
     /**
@@ -70,10 +76,12 @@ public class CircuitBreaker {
      * Updates the last failure timestamp when the circuit opens.
      */
     public synchronized void recordFailure() {
-        if (failureCount.incrementAndGet() >= FAILURE_THRESHOLD) {
+        int currentFailures = failureCount.incrementAndGet();
+        if (currentFailures >= FAILURE_THRESHOLD) {
             isOpen = true;
             lastFailureTime = System.currentTimeMillis();
-            // TODO: Add logging: "Circuit opened due to " + FAILURE_THRESHOLD + " failures"
+            LOGGER.log(Level.INFO, "Circuit opened due to {0} failures (threshold: {1})",
+                    new Object[]{currentFailures, FAILURE_THRESHOLD});
         }
     }
 

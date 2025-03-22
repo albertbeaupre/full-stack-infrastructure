@@ -2,6 +2,9 @@ package infrastructure.plugin;
 
 /**
  * Exception thrown when plugin loading fails due to an unrecoverable error.
+ *
+ * @author Albert Beaupre
+ * @since March 13th, 2025
  */
 public class PluginLoadingException extends RuntimeException {
     /**

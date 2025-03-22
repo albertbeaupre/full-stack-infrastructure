@@ -24,6 +24,9 @@ import java.util.concurrent.atomic.AtomicLong;
  * <p>Thread Safety: This class is thread-safe for all operations. AtomicLong ensures
  * concurrent updates to metrics, and volatile fields provide visibility of health
  * status changes across threads.
+ *
+ * @author Albert Beaupre
+ * @since March 13th, 2025
  */
 public class ServerNode {
     private final String id;
@@ -52,15 +55,14 @@ public class ServerNode {
      *         or weight is outside the valid range
      */
     public ServerNode(String host, int port, int weight) {
-        if (host == null || host.trim().isEmpty()) {
+        if (host == null || host.trim().isEmpty())
             throw new IllegalArgumentException("Host cannot be null or empty");
-        }
-        if (port <= 0 || port > 65535) {
+
+        if (port <= 0 || port > 65535)
             throw new IllegalArgumentException("Port must be between 1 and 65535, got: " + port);
-        }
-        if (weight < 0 || weight > 100) {
+
+        if (weight < 0 || weight > 100)
             throw new IllegalArgumentException("Weight must be between 0 and 100, got: " + weight);
-        }
 
         this.id = UUID.randomUUID().toString();
         this.host = host;
@@ -182,9 +184,8 @@ public class ServerNode {
      * @throws IllegalArgumentException if latency is negative
      */
     public void recordRequest(long latency) {
-        if (latency < 0) {
+        if (latency < 0)
             throw new IllegalArgumentException("Latency cannot be negative: " + latency);
-        }
         totalRequests.incrementAndGet();
         totalLatency.addAndGet(latency);
     }

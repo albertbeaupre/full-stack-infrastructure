@@ -42,9 +42,8 @@ public abstract class Event {
      * @throws IllegalStateException if the event has already been consumed
      */
     public void consume() {
-        if (consumed) {
+        if (consumed)
             throw new IllegalStateException("Event of type " + getClass().getSimpleName() + " was already consumed at " + timestamp);
-        }
         this.consumed = true;
     }
 

@@ -17,8 +17,7 @@ package infrastructure.service;
  * @param <T> The type of the service interface or base class that the interceptor is concerned with. This
  *            ensures that the intercept method receives instances of the correct type.
  * @author Albert Beaupre
- * @version 1.0
- * @since 1.0
+ * @since March 13th, 2025
  */
 public interface ServiceInterceptor<T> {
 

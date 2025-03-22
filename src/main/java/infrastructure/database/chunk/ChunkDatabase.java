@@ -10,10 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -108,6 +105,8 @@ public abstract class ChunkDatabase<K, D> {
      */
     private final ExecutorService service;
 
+    private final byte[] emptyData, emptyKey;
+
     /**
      * Constructs a new {@code ChunkDatabase} instance, initializing the key and data
      * file pools, and loading existing pointers from the key file if it exists.
@@ -125,6 +124,8 @@ public abstract class ChunkDatabase<K, D> {
         this.service = Executors.newFixedThreadPool(threadCount);
         this.keyPool = new ObjectPool<>(new RAFPoolFactory(folder.concat(File.separator).concat(KEY_FILE)), 200);
         this.dataPool = new ObjectPool<>(new RAFPoolFactory(folder.concat(File.separator).concat(DATA_FILE)), 200);
+        this.emptyData = new byte[dataChunkSize];
+        this.emptyKey = new byte[keyChunkSize];
 
         Path folderPath = Paths.get(folder);
 
@@ -307,7 +308,7 @@ public abstract class ChunkDatabase<K, D> {
      * @throws NullPointerException If the key does not exist in the database.
      */
     public CompletableFuture<Void> delete(final K key) {
-        Lock lock = locks.computeIfAbsent(key, k -> new ReentrantLock());
+        Lock lock = locks.computeIfAbsent(key, _ -> new ReentrantLock());
 
         return CompletableFuture.runAsync(() -> {
             lock.lock();
@@ -316,6 +317,9 @@ public abstract class ChunkDatabase<K, D> {
 
                 if (pointer == INVALID_POINTER)
                     return;
+
+                // Remove from pointers map
+                this.pointers.remove(key);
 
                 // Get file objects from pools
                 var keyObject = this.keyPool.borrow();
@@ -327,14 +331,11 @@ public abstract class ChunkDatabase<K, D> {
 
                     // Mark key as deleted by writing zeros to key chunk
                     keyRAF.seek(pointer * this.keyChunkSize);
-                    keyRAF.write(new byte[this.keyChunkSize]);
+                    keyRAF.write(emptyKey);
 
                     // Optionally mark data as deleted (write zeros)
                     dataRAF.seek(pointer * this.dataChunkSize);
-                    dataRAF.write(new byte[this.dataChunkSize]);
-
-                    // Remove from pointers map
-                    this.pointers.remove(key);
+                    dataRAF.write(emptyData);
 
                 } catch (IOException e) {
                     throw new RuntimeException("Could not delete entry from database: " + e.getMessage(), e);
@@ -372,11 +373,10 @@ public abstract class ChunkDatabase<K, D> {
             var raf = dataObject.file();
             try {
                 raf.seek(pointer * dataChunkSize);
-                byte[] data = new byte[dataChunkSize];
-                raf.read(data);
+                raf.read(emptyData);
                 this.dataPool.recycle(dataObject);  // Place the random access file back into the pool
 
-                return this.deconstructData(data);
+                return this.deconstructData(emptyData);
             } catch (IOException e) {
                 throw new RuntimeException("Could not load from database: " + e.getMessage());
             }

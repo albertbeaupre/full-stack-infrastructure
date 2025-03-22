@@ -44,7 +44,7 @@ import java.util.logging.Logger;
  * 
  * <p><b>Example Usage:</b>
  * <pre>
- *     OptimizedLoadBalancer lb = new OptimizedLoadBalancer(10, 100, 4, 5);
+ *     LoadBalancer lb = new LoadBalancer(10, 100, 4, 5);
  *     lb.addServer("server1.example.com", 8080, 100);
  *     lb.addServer("server2.example.com", 8080, 150);
  *     lb.getServer().thenAccept(server -> {
@@ -62,6 +62,9 @@ import java.util.logging.Logger;
  *     <li>Health checks are probabilistic to minimize overhead; adjust sampling rates for stricter reliability.</li>
  *     <li>Server removal does not resize the internal array; use a larger initial capacity to avoid rehashing.</li>
  * </ul>
+ *
+ * @author Albert Beaupre
+ * @since March 13th, 2025
  */
 public class LoadBalancer {
     private static final Logger LOGGER = Logger.getLogger(LoadBalancer.class.getName());

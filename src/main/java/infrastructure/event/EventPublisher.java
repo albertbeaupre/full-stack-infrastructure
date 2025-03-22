@@ -84,14 +84,14 @@ public class EventPublisher {
         TreeSet<EventListener> set = listeners.get(event.getClass());
         if (set != null) {
             for (EventListener listener : set) {
-                if (event.isConsumed()) { // Assuming Event uses isConsumed()
+                if (event.isConsumed()) // Assuming Event uses isConsumed()
                     break;
-                }
+
                 try {
-                    listener.handle(event);
+                    if (listener.canHandle(event))
+                        listener.handle(event);
                 } catch (Exception e) {
-                    // Log the exception (in a real system, use a proper logger)
-                    System.err.println("Listener " + listener.getClass().getSimpleName() +  " failed to handle event " + event + ": " + e.getMessage());
+                    throw new RuntimeException("Failed to handle event", e);
                 }
             }
         }
