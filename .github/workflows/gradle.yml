@@ -1,67 +1,84 @@
 # This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-# This workflow will build a Java project with Gradle and cache/restore any dependencies to improve the workflow execution time
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-gradle
+# They are provided by a third-party and are governed by separate terms of service,
+# privacy policy, and support documentation.
+# This workflow will build a Java project with Gradle, cache/restore dependencies,
+# and optionally publish artifacts or submit a dependency graph.
+# For more information, see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-gradle
 
 name: Java CI with Gradle
 
+# Trigger the workflow on push or pull requests to the main branch
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
+# Define jobs for building and dependency management
 jobs:
   build:
-
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read  # Required to checkout code
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
+      # Checkout the repository code
+      - uses: actions/checkout@v4
 
-    # Configure Gradle for optimal use in GitHub Actions, including caching of downloaded dependencies.
-    # See: https://github.com/gradle/actions/blob/main/setup-gradle/README.md
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
+      # Set up JDK 17 (adjust version as needed)
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'  # Match your project's Java version
+          distribution: 'temurin'  # Eclipse Temurin is a popular, reliable JDK distribution
 
-    - name: Build with Gradle Wrapper
-      run: ./gradlew build
+      # Configure Gradle with caching for faster builds
+      # See: https://github.com/gradle/actions/blob/main/setup-gradle/README.md
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4.0.0  # Latest stable version as of March 2025
 
-    # NOTE: The Gradle Wrapper is the default and recommended way to run Gradle (https://docs.gradle.org/current/userguide/gradle_wrapper.html).
-    # If your project does not have the Gradle Wrapper configured, you can use the following configuration to run Gradle with a specified version.
-    #
-    # - name: Setup Gradle
-    #   uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
-    #   with:
-    #     gradle-version: '8.9'
-    #
-    # - name: Build with Gradle 8.9
-    #   run: gradle build
+      # Build the project using the Gradle Wrapper (recommended)
+      - name: Build with Gradle Wrapper
+        run: ./gradlew build  # Runs build and test tasks by default
 
+      # Optional: Upload build artifacts (e.g., JAR files) for later use
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: java-artifacts
+          path: build/libs/*.jar  # Adjust path based on your project's output
+
+    # Optional: Publish to GitHub Packages (uncomment and configure if needed)
+    # Requires a build.gradle with maven-publish plugin configured
+    # - name: Publish to GitHub Packages
+    #   run: ./gradlew publish
+    #   env:
+    #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Separate job for dependency graph submission (for Dependabot alerts)
   dependency-submission:
-
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write  # Required to submit dependency graph
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
+      # Checkout the repository code
+      - uses: actions/checkout@v4
 
-    # Generates and submits a dependency graph, enabling Dependabot Alerts for all project dependencies.
-    # See: https://github.com/gradle/actions/blob/main/dependency-submission/README.md
-    - name: Generate and submit dependency graph
-      uses: gradle/actions/dependency-submission@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
+      # Set up JDK 17 (must match build job)
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # Generate and submit dependency graph for Dependabot
+      # See: https://github.com/gradle/actions/blob/main/dependency-submission/README.md
+      - name: Generate and submit dependency graph
+        uses: gradle/actions/dependency-submission@v4.0.0
+
+# Optional: Uncomment below to run jobs conditionally or add more customization
+# Example: Only run dependency-submission on push, not PRs
+# dependency-submission:
+#   if: github.event_name == 'push'
+#   ...
