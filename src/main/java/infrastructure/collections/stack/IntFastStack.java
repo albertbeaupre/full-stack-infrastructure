@@ -1,16 +1,20 @@
 package infrastructure.collections.stack;
 
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 /**
  * A generic implementation of a dynamic stack in Java. This is considered fast because it uses fewer
  * method calls and checks, which in turn is fewer instructions.
- *
+ * <p>
+ * Now implements Iterable&lt;Integer&gt;, so you can iterate over the elements in LIFO order.
+ * </p>
  * @author Albert Beaupre
  * @version 1.0
  * @since May 1st, 2024
  */
-public class IntFastStack {
+public class IntFastStack implements Iterable<Integer> {
     private int[] stack;
     private int ordinal;
 
@@ -37,12 +41,10 @@ public class IntFastStack {
      */
     public void push(int data) {
         if (ordinal == stack.length) { // Resize the stack array if it reaches its capacity
-            // If the array is full, create a new array with double the capacity
             int[] copy = new int[stack.length * 2];
-            // Copy the elements from the old array to the new array
-            for (int i = 0; i < stack.length; i++)
+            for (int i = 0; i < stack.length; i++) {
                 copy[i] = stack[i];
-            // Update the reference to the new array
+            }
             stack = copy;
         }
         stack[ordinal++] = data;
@@ -65,8 +67,12 @@ public class IntFastStack {
      * Returns the element at the top of the stack without removing it.
      *
      * @return the element at the top of the stack
+     * @throws NoSuchElementException if the stack is empty.
      */
     public int peek() {
+        if (ordinal == 0) {
+            throw new NoSuchElementException("Stack is empty.");
+        }
         return stack[ordinal - 1];
     }
 
@@ -89,11 +95,10 @@ public class IntFastStack {
     }
 
     /**
-     * Clears the stack by setting the number of elements to zero and filling the array with null values.
+     * Clears the stack by setting the number of elements to zero and filling the array with zeros.
      */
     public void clear() {
-        for (int i = 0, len = stack.length; i < len; i++)
-            stack[i] = 0;
+        Arrays.fill(stack, 0);
         ordinal = 0;
     }
 
@@ -105,5 +110,57 @@ public class IntFastStack {
     @Override
     public String toString() {
         return Arrays.toString(Arrays.copyOf(stack, ordinal));
+    }
+
+    /**
+     * Returns an iterator over the elements in this stack in LIFO order (from the top of the stack to the bottom).
+     *
+     * @return an Iterator of Integer objects.
+     */
+    @Override
+    public Iterator<Integer> iterator() {
+        return new IntFastStackIterator();
+    }
+
+    /**
+     * An iterator that traverses the IntFastStack in LIFO order.
+     */
+    private class IntFastStackIterator implements Iterator<Integer> {
+        // Begin iteration at the top (most recently added element)
+        private int currentIndex = ordinal - 1;
+
+        /**
+         * Checks if there is another element in the iterator.
+         *
+         * @return true if there is another element, false otherwise.
+         */
+        @Override
+        public boolean hasNext() {
+            return currentIndex >= 0;
+        }
+
+        /**
+         * Returns the next element from the stack.
+         *
+         * @return the next Integer (autoboxed from int) in LIFO order.
+         * @throws NoSuchElementException if no further elements exist.
+         */
+        @Override
+        public Integer next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException("No more elements in the stack.");
+            }
+            return stack[currentIndex--];
+        }
+
+        /**
+         * The remove operation is not supported by this iterator.
+         *
+         * @throws UnsupportedOperationException always.
+         */
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException("Remove not supported.");
+        }
     }
 }

@@ -1,16 +1,20 @@
 package infrastructure.collections.stack;
 
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 /**
  * A generic implementation of a dynamic stack in Java. This is considered fast because it uses fewer
  * method calls and checks, which in turn is fewer instructions.
- *
+ * <p>
+ * This implementation now implements the Iterable interface, allowing you to iterate over the stack elements in LIFO order.
+ * </p>
  * @author Albert Beaupre
  * @version 1.0
  * @since 1.0
  */
-public class ByteFastStack {
+public class ByteFastStack implements Iterable<Byte> {
     private byte[] stack;
     private int ordinal;
 
@@ -40,8 +44,9 @@ public class ByteFastStack {
             // If the array is full, create a new array with double the capacity
             byte[] copy = new byte[stack.length * 2];
             // Copy the elements from the old array to the new array
-            for (int i = 0; i < stack.length; i++)
+            for (int i = 0; i < stack.length; i++) {
                 copy[i] = stack[i];
+            }
             // Update the reference to the new array
             stack = copy;
         }
@@ -51,7 +56,7 @@ public class ByteFastStack {
     /**
      * Removes and returns the element at the top of the stack.
      *
-     * @return the element removed from the top of the stack
+     * @return the element removed from the top of the stack or -1 if the stack is empty
      */
     public byte pop() {
         if (ordinal == 0)
@@ -67,6 +72,9 @@ public class ByteFastStack {
      * @return the element at the top of the stack
      */
     public byte peek() {
+        if (ordinal == 0) {
+            throw new NoSuchElementException("Stack is empty.");
+        }
         return stack[ordinal - 1];
     }
 
@@ -89,11 +97,10 @@ public class ByteFastStack {
     }
 
     /**
-     * Clears the stack by setting the number of elements to zero and filling the array with null values.
+     * Clears the stack by setting the number of elements to zero and filling the array with zeros.
      */
     public void clear() {
-        for (int i = 0, len = stack.length; i < len; i++)
-            stack[i] = 0;
+        Arrays.fill(stack, (byte) 0);
         ordinal = 0;
     }
 
@@ -105,5 +112,57 @@ public class ByteFastStack {
     @Override
     public String toString() {
         return Arrays.toString(Arrays.copyOf(stack, ordinal));
+    }
+
+    /**
+     * Returns an iterator over the elements in this stack in LIFO order (from the top of the stack to the bottom).
+     *
+     * @return an Iterator of Byte objects.
+     */
+    @Override
+    public Iterator<Byte> iterator() {
+        return new ByteFastStackIterator();
+    }
+
+    /**
+     * An iterator that traverses the ByteFastStack in LIFO order.
+     */
+    private class ByteFastStackIterator implements Iterator<Byte> {
+        // Initialize index to the top element of the stack (last pushed element)
+        private int currentIndex = ordinal - 1;
+
+        /**
+         * Checks if there are more elements to iterate over.
+         *
+         * @return true if there is another element, false otherwise.
+         */
+        @Override
+        public boolean hasNext() {
+            return currentIndex >= 0;
+        }
+
+        /**
+         * Returns the next element in the iteration.
+         *
+         * @return the next Byte in the stack.
+         * @throws NoSuchElementException if no more elements exist in the iteration.
+         */
+        @Override
+        public Byte next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            return stack[currentIndex--]; // Autoboxing from byte to Byte.
+        }
+
+        /**
+         * The remove operation is not supported by this iterator.
+         *
+         * @throws UnsupportedOperationException always.
+         */
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException("Remove not supported.");
+        }
     }
 }

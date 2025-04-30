@@ -1,16 +1,21 @@
 package infrastructure.collections.stack;
 
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 /**
  * A generic implementation of a dynamic stack in Java. This is considered fast because it uses fewer
  * method calls and checks, which in turn is fewer instructions.
- *
+ * <p>
+ * Now implements Iterable so that you can iterate over the stack's characters from top-of-stack (most recent)
+ * to bottom in a for-each loop.
+ * </p>
  * @author Albert Beaupre
  * @version 1.0
  * @since May 1st, 2024
  */
-public class CharFastStack {
+public class CharFastStack implements Iterable<Character> {
     private char[] stack;
     private int ordinal;
 
@@ -37,12 +42,10 @@ public class CharFastStack {
      */
     public void push(char data) {
         if (ordinal == stack.length) { // Resize the stack array if it reaches its capacity
-            // If the array is full, create a new array with double the capacity
             char[] copy = new char[stack.length * 2];
-            // Copy the elements from the old array to the new array
-            for (int i = 0; i < stack.length; i++)
+            for (int i = 0; i < stack.length; i++) {
                 copy[i] = stack[i];
-            // Update the reference to the new array
+            }
             stack = copy;
         }
         stack[ordinal++] = data;
@@ -51,7 +54,7 @@ public class CharFastStack {
     /**
      * Removes and returns the element at the top of the stack.
      *
-     * @return the element removed from the top of the stack
+     * @return the element removed from the top of the stack or (char)-1 if the stack is empty
      */
     public char pop() {
         if (ordinal == 0)
@@ -65,8 +68,12 @@ public class CharFastStack {
      * Returns the element at the top of the stack without removing it.
      *
      * @return the element at the top of the stack
+     * @throws NoSuchElementException if the stack is empty
      */
     public char peek() {
+        if (ordinal == 0) {
+            throw new NoSuchElementException("Stack is empty.");
+        }
         return stack[ordinal - 1];
     }
 
@@ -89,11 +96,10 @@ public class CharFastStack {
     }
 
     /**
-     * Clears the stack by setting the number of elements to zero and filling the array with null values.
+     * Clears the stack by setting the number of elements to zero and filling the array with zeros.
      */
     public void clear() {
-        for (int i = 0, len = stack.length; i < len; i++)
-            stack[i] = 0;
+        Arrays.fill(stack, (char) 0);
         ordinal = 0;
     }
 
@@ -105,5 +111,46 @@ public class CharFastStack {
     @Override
     public String toString() {
         return Arrays.toString(Arrays.copyOf(stack, ordinal));
+    }
+
+    /**
+     * Returns an iterator over the elements in this stack in LIFO order (from the top of the stack to the bottom).
+     *
+     * @return an Iterator of Character objects.
+     */
+    @Override
+    public Iterator<Character> iterator() {
+        return new CharFastStackIterator();
+    }
+
+    /**
+     * An iterator that traverses the CharFastStack in LIFO order.
+     */
+    private class CharFastStackIterator implements Iterator<Character> {
+        // Start iterating at the top of the stack (most recently added element)
+        private int currentIndex = ordinal - 1;
+
+        @Override
+        public boolean hasNext() {
+            return currentIndex >= 0;
+        }
+
+        @Override
+        public Character next() {
+            if (!hasNext()) {
+                throw new NoSuchElementException();
+            }
+            return stack[currentIndex--];  // Autoboxing from char to Character.
+        }
+
+        /**
+         * Remove operation is not supported.
+         *
+         * @throws UnsupportedOperationException always.
+         */
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException("Remove not supported.");
+        }
     }
 }

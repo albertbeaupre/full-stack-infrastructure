@@ -1,429 +1,452 @@
 package infrastructure.database.chunk;
 
+import infrastructure.collections.stack.LongFastStack;
+import infrastructure.io.ByteCodeStrategy;
+import infrastructure.io.RAFPoolFactory;
+import infrastructure.io.RAFPoolObject;
 import infrastructure.pool.ObjectPool;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.MappedByteBuffer;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.util.HashMap;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * The {@code ChunkDatabase} class provides a simple key-value storage mechanism
- * where data is stored in fixed-size chunks within binary files. It is designed
- * for efficient data retrieval and update operations, making it suitable for
- * use cases that require direct access to data stored on disk.
+ * The {@code ChunkDatabase} class provides a fixed-size, chunk-based key-value storage system
+ * designed for efficient random-access operations on disk. It stores keys and their corresponding
+ * data in separate binary files ({@code keys.bin} and {@code data.bin}), with each entry occupying
+ * a fixed-size chunk. This implementation ensures thread-safety through key-specific locking and
+ * optimizes resource usage with object pooling for file handles.
  *
- * <p>The database stores keys and data in separate binary files. The {@code keys.bin}
- * file holds the keys, while the {@code data.bin} file stores the corresponding data
- * chunks. The size of the chunks for both keys and data is configurable, providing
- * flexibility depending on the specific application requirements.</p>
+ * <p>Data and keys are serialized into fixed-size chunks using a {@link ByteCodeStrategy} for
+ * encoding and decoding. The database supports create, retrieve, update, and delete (CRUD)
+ * operations, with unused chunk indices tracked for efficient space reuse. The class is designed
+ * to be extended for specific key and data types through parameterized generics.</p>
  *
- * <p>The class supports asynchronous operations, leveraging a thread pool for executing
- * tasks. This allows for non-blocking interactions with the database, making it
- * well-suited for high-concurrency environments.</p>
+ * <p><b>Key Features:</b></p>
+ * <ul>
+ *   <li>Thread-safe operations using per-key {@link ReentrantLock} instances.</li>
+ *   <li>Efficient file handle management via {@link ObjectPool} for {@link RandomAccessFile}.</li>
+ *   <li>Fixed-size chunk allocation for predictable storage and fast access.</li>
+ *   <li>Support for pre-allocation of chunks and reuse of freed chunks.</li>
+ *   <li>Automatic directory and file creation with error handling.</li>
+ * </ul>
  *
- * <p><strong>Usage Example:</strong></p>
- * <pre>{@code
- * ChunkDatabase<String, MyData> db = new MyChunkDatabaseImpl<>("dbFolder", 128, 1024, 4);
+ * <p><b>Usage Example:</b></p>
+ * <pre>
+ * // Define a concrete implementation with specific serialization strategies
+ * ChunkDatabase<String, MyData> db = new ChunkDatabase<>(
+ *     "dbFolder",
+ *     new StringByteCodeStrategy(),  // Custom key serialization
+ *     new MyDataByteCodeStrategy(), // Custom data serialization
+ *     128,                          // Key chunk size
+ *     1024,                         // Data chunk size
+ *     1000                          // Pre-allocate 1000 chunks
+ * );
  *
- * db.create("key1", new MyData()).thenRun(() -> System.out.println("Data created!"));
+ * // Create a new entry
+ * db.create("key1", new MyData());
  *
- * db.retrieve("key1").thenAccept(data -> System.out.println("Retrieved data: " + data));
+ * // Retrieve data
+ * MyData data = db.retrieve("key1");
+ * System.out.println("Retrieved: " + data);
  *
- * db.update("key1", new MyData()).thenRun(() -> System.out.println("Data updated!"));
- * }</pre>
+ * // Update data
+ * db.update("key1", new MyData());
  *
- * <p>In the example above, a database instance is created with specific chunk sizes for
- * keys and data. Data is created, retrieved, and updated asynchronously.</p>
+ * // Delete entry
+ * db.delete("key1");
  *
- * @param <K> The type of keys used by the database.
- * @param <D> The type of data stored in the database.
- * @author Albert Beaupre
+ * // Close database
+ * db.close();
+ * </pre>
+ *
+ * @param <K> The type of keys used to identify data entries.
+ * @param <D> The type of data stored in each entry.
+ * @author Albert
+ * @version 1.1
  * @since August 31st, 2024
  */
-public abstract class ChunkDatabase<K, D> {
+public class ChunkDatabase<K, D> implements AutoCloseable {
 
     /**
-     * The name of the file that stores the keys and their associated pointers.
+     * The filename for storing unused chunk indices.
+     */
+    private static final String UNUSED_FILE = "unused.bin";
+
+    /**
+     * The filename for storing serialized keys and their pointers.
      */
     private static final String KEY_FILE = "keys.bin";
 
     /**
-     * The name of the file that stores the data chunks corresponding to the keys.
+     * The filename for storing serialized data chunks.
      */
     private static final String DATA_FILE = "data.bin";
 
     /**
-     * A constant representing an invalid pointer value, used when a key does not exist.
+     * A map associating keys with their chunk indices (pointers) in the data file.
+     * The pointer represents the chunk offset, not the byte offset.
      */
-    private static final long INVALID_POINTER = -1;
+    private final HashMap<K, Long> pointers;
 
     /**
-     * A mapping of keys to their corresponding pointers in the database files. The pointer
-     * indicates the position of the data associated with the key in the data file.
+     * A thread-safe map storing per-key locks to ensure thread-safe operations.
      */
-    private final Map<K, Long> pointers;
+    private final ConcurrentHashMap<K, ReentrantLock> locks;
 
     /**
-     * A mapping of keys to their corresponding locks, ensuring thread-safe updates to data.
-     */
-    private final Map<K, Lock> locks;
-
-    /**
-     * A pool of random access file objects used for accessing and modifying the key file.
+     * An object pool for managing {@link RandomAccessFile} instances for the key file.
+     * Limits the number of open file handles and promotes reuse.
      */
     private final ObjectPool<RAFPoolObject> keyPool;
 
     /**
-     * A pool of random access file objects used for accessing and modifying the data file.
+     * An object pool for managing {@link RandomAccessFile} instances for the data file.
+     * Optimizes file access for read/write operations.
      */
     private final ObjectPool<RAFPoolObject> dataPool;
 
     /**
-     * The size of each chunk used to store data in the database.
+     * The strategy for serializing and deserializing keys.
+     */
+    private final ByteCodeStrategy<K> keyStrategy;
+
+    /**
+     * The strategy for serializing and deserializing data.
+     */
+    private final ByteCodeStrategy<D> dataStrategy;
+
+    /**
+     * The fixed size (in bytes) of each data chunk. Serialized data must not exceed this size.
      */
     private final int dataChunkSize;
 
     /**
-     * The size of each chunk used to store keys in the database.
+     * The fixed size (in bytes) of each key chunk. Serialized keys must not exceed this size.
      */
     private final int keyChunkSize;
 
     /**
-     * An executor service used for handling asynchronous database operations.
+     * A pre-allocated zero-filled byte array for clearing or padding data chunks.
      */
-    private final ExecutorService service;
-
-    private final byte[] emptyData, emptyKey;
+    private final byte[] emptyData;
 
     /**
-     * Constructs a new {@code ChunkDatabase} instance, initializing the key and data
-     * file pools, and loading existing pointers from the key file if it exists.
-     *
-     * @param folder        The folder where the key and data files are stored.
-     * @param keyChunkSize  The size of each key chunk in bytes.
-     * @param dataChunkSize The size of each data chunk in bytes.
-     * @param threadCount   The number of threads used for executing asynchronous tasks.
+     * A pre-allocated zero-filled byte array for clearing or padding key chunks.
      */
-    public ChunkDatabase(String folder, int keyChunkSize, int dataChunkSize, int threadCount) {
+    private final byte[] emptyKey;
+
+    /**
+     * A stack for tracking unused chunk indices, enabling efficient reuse of freed space.
+     */
+    private final LongFastStack unusedChunks;
+
+    /**
+     * The file system path to the database storage directory.
+     */
+    private final Path folder;
+
+    /**
+     * Constructs a new {@code ChunkDatabase} instance, initializing file pools, storage directories,
+     * and loading existing key pointers.
+     *
+     * <p>The constructor creates the storage directory if it does not exist and initializes the
+     * key and data files with pre-allocated chunks if specified. It also loads any existing unused
+     * chunk indices and key pointers from disk. File access is managed through object pools to
+     * optimize resource usage.</p>
+     *
+     * @param folder          The directory path for storing database files.
+     * @param keyStrategy     The strategy for serializing/deserializing keys.
+     * @param dataStrategy    The strategy for serializing/deserializing data.
+     * @param keyChunkSize    The fixed size (in bytes) for each key chunk.
+     * @param dataChunkSize   The fixed size (in bytes) for each data chunk.
+     * @param chunkAllocation The number of chunks to pre-allocate if the database is new.
+     * @throws RuntimeException If the storage directory cannot be created or if file operations fail.
+     */
+    public ChunkDatabase(String folder, ByteCodeStrategy<K> keyStrategy, ByteCodeStrategy<D> dataStrategy, int keyChunkSize, int dataChunkSize, int chunkAllocation) {
+        this.keyStrategy = keyStrategy;
+        this.dataStrategy = dataStrategy;
         this.dataChunkSize = dataChunkSize;
         this.keyChunkSize = keyChunkSize;
         this.pointers = new HashMap<>();
         this.locks = new ConcurrentHashMap<>();
-        this.service = Executors.newFixedThreadPool(threadCount);
-        this.keyPool = new ObjectPool<>(new RAFPoolFactory(folder.concat(File.separator).concat(KEY_FILE)), 200);
-        this.dataPool = new ObjectPool<>(new RAFPoolFactory(folder.concat(File.separator).concat(DATA_FILE)), 200);
+        this.unusedChunks = new LongFastStack();
         this.emptyData = new byte[dataChunkSize];
         this.emptyKey = new byte[keyChunkSize];
 
-        Path folderPath = Paths.get(folder);
-
-        if (!Files.exists(folderPath)) {
-            try {
-                Files.createDirectory(folderPath);
-            } catch (IOException e) {
-                throw new RuntimeException("Cannot create chunk database directory", e);
-            }
-        }
-
-        String keyFilePath = folder + File.separator + KEY_FILE; // Use File.separator for OS compatibility
-        Path path = Paths.get(keyFilePath);
-
-        if (Files.exists(path)) {
-            try (FileChannel channel = FileChannel.open(path, StandardOpenOption.READ)) {
-                MappedByteBuffer buffer = channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size());
-                while (buffer.remaining() > 0) {
-                    long pointer = buffer.position();
-                    byte[] data = new byte[keyChunkSize];
-                    buffer.get(data);
-                    this.pointers.put(this.deconstructKey(data), pointer);
-                }
-                System.out.println(pointers);
-            } catch (IOException e) {
-                throw new RuntimeException("Cannot read chunk database pointer file: " + keyFilePath, e);
-            }
-        }
-    }
-
-    /**
-     * Converts a byte array into its corresponding data representation.
-     * This method must be implemented by subclasses to define how data is
-     * deserialized from its byte array form.
-     *
-     * @param data The byte array representing the data.
-     * @return The deserialized data object.
-     */
-    protected abstract D deconstructData(byte[] data);
-
-    /**
-     * Converts a data object into its corresponding byte array representation.
-     * This method must be implemented by subclasses to define how data is
-     * serialized into a byte array.
-     *
-     * @param data The data object to serialize.
-     * @return The byte array representing the serialized data.
-     */
-    protected abstract byte[] constructData(D data);
-
-    /**
-     * Converts a key into its corresponding byte array representation.
-     * This method must be implemented by subclasses to define how keys are
-     * serialized into a byte array.
-     *
-     * @param key The key to serialize.
-     * @return The byte array representing the serialized key.
-     */
-    protected abstract byte[] constructKey(K key);
-
-    /**
-     * Converts a byte array into its corresponding key representation.
-     * This method must be implemented by subclasses to define how keys are
-     * deserialized from their byte array form.
-     *
-     * @param data The byte array representing the key.
-     * @return The deserialized key object.
-     */
-    protected abstract K deconstructKey(byte[] data);
-
-    /**
-     * Creates a new entry in the database with the given key and data. This method
-     * is asynchronous and ensures that no data corruption occurs by synchronizing
-     * access to the relevant sections of the database files.
-     *
-     * <p>This method uses a {@link CompletableFuture} to handle the creation operation
-     * asynchronously, allowing the caller to perform other tasks while the operation
-     * is being processed.
-     *
-     * @param key  The key associated with the data.
-     * @param data The data to store in the database.
-     * @return A {@link CompletableFuture} representing the completion of the operation.
-     * @throws IndexOutOfBoundsException If the key or data size exceeds the configured chunk size.
-     */
-    public CompletableFuture<Void> create(final K key, final D data) {
-        return CompletableFuture.runAsync(() -> {
-            if (pointers.containsKey(key))
-                throw new RuntimeException("Key already exists: " + key);
-
-            var keyObject = this.keyPool.borrow();
-            var dataObject = this.dataPool.borrow();
-
-            var keyRAF = keyObject.file();
-            var dataRAF = dataObject.file();
-            try {
-                byte[] keyData = this.constructKey(key);
-
-                if (keyData.length > this.keyChunkSize)
-                    throw new IndexOutOfBoundsException("Key chunk size must be <= the database key chunk size");
-
-                byte[] construction = this.constructData(data);
-
-                if (construction.length > this.dataChunkSize)
-                    throw new IndexOutOfBoundsException("Data chunk size must be <= the database data chunk size");
-
-                var position = keyRAF.length();
-                var pointer = position / this.keyChunkSize;
-
-                // Write key values
-                keyRAF.seek(position);
-                keyRAF.write(keyData);
-                keyRAF.write(new byte[this.keyChunkSize - (keyData.length % keyChunkSize)]);
-
-                // Write data values
-                dataRAF.seek(pointer * this.dataChunkSize);
-                dataRAF.write(construction);
-                dataRAF.write(new byte[this.dataChunkSize - (construction.length % dataChunkSize)]);
-
-                this.pointers.put(key, pointer);
-                this.keyPool.recycle(keyObject);
-                this.dataPool.recycle(dataObject);
-            } catch (IOException e) {
-                throw new RuntimeException("Error creating new chunk: ".concat(e.getMessage()));
-            }
-        });
-    }
-
-    /**
-     * Asynchronously updates the data associated with the given key in the database.
-     * This method ensures thread-safe updates by acquiring a lock for the key being updated.
-     *
-     * @param key  The key whose data is to be updated.
-     * @param data The new data to associate with the key.
-     * @return A {@link CompletableFuture} representing the completion of the update operation.
-     * @throws NullPointerException      If the key does not exist or if the data is null.
-     * @throws IndexOutOfBoundsException If the data size exceeds the configured chunk size.
-     */
-    public CompletableFuture<Void> update(final K key, final D data) {
-        Lock lock = locks.computeIfAbsent(key, k -> new ReentrantLock());
-
-        return CompletableFuture.runAsync(() -> {
-            Objects.requireNonNull(data, "Data cannot be written as null");
-
-            final byte[] construction = this.constructData(data);
-
-            if (construction.length > dataChunkSize)
-                throw new IndexOutOfBoundsException("The data length must be <= " + this.dataChunkSize);
-
-            lock.lock();
-            try {
-                long pointer = this.pointers.getOrDefault(key, INVALID_POINTER);
-
-                if (pointer == INVALID_POINTER)
-                    throw new NullPointerException("Key does not exist: " + key);
-
-                var dataObject = this.dataPool.borrow();
-                var raf = dataObject.file();
-                try {
-                    raf.seek(pointer * this.dataChunkSize);
-                    raf.write(construction);
-                    raf.write(new byte[this.dataChunkSize - (construction.length % this.dataChunkSize)]);
-                } catch (IOException e) {
-                    throw new RuntimeException("Could not write to database file: " + e.getMessage(), e);
-                } finally {
-                    this.dataPool.recycle(dataObject);
-                }
-            } finally {
-                lock.unlock();
-            }
-        }, service);
-    }
-
-    /**
-     * Asynchronously deletes the data associated with the given key from the database.
-     * This method marks the entry as deleted and removes it from the pointers map.
-     * The actual data space is not reclaimed, but the key is no longer accessible.
-     *
-     * @param key The key to delete from the database.
-     * @return A {@link CompletableFuture} representing the completion of the delete operation.
-     * @throws NullPointerException If the key does not exist in the database.
-     */
-    public CompletableFuture<Void> delete(final K key) {
-        Lock lock = locks.computeIfAbsent(key, l -> new ReentrantLock());
-
-        return CompletableFuture.runAsync(() -> {
-            lock.lock();
-            try {
-                Long pointer = this.pointers.getOrDefault(key, INVALID_POINTER);
-
-                if (pointer == INVALID_POINTER)
-                    return;
-
-                // Remove from pointers map
-                this.pointers.remove(key);
-
-                // Get file objects from pools
-                var keyObject = this.keyPool.borrow();
-                var dataObject = this.dataPool.borrow();
-
-                try {
-                    var keyRAF = keyObject.file();
-                    var dataRAF = dataObject.file();
-
-                    // Mark key as deleted by writing zeros to key chunk
-                    keyRAF.seek(pointer * this.keyChunkSize);
-                    keyRAF.write(emptyKey);
-
-                    // Optionally mark data as deleted (write zeros)
-                    dataRAF.seek(pointer * this.dataChunkSize);
-                    dataRAF.write(emptyData);
-
-                } catch (IOException e) {
-                    throw new RuntimeException("Could not delete entry from database: " + e.getMessage(), e);
-                } finally {
-                    // Return objects to pools
-                    this.keyPool.recycle(keyObject);
-                    this.dataPool.recycle(dataObject);
-                }
-
-                // Remove lock after successful deletion
-                locks.remove(key);
-
-            } finally {
-                lock.unlock();
-            }
-        }, service);
-    }
-
-    /**
-     * Retrieves the data associated with the given key from the database asynchronously.
-     * If the key does not exist, a {@link NullPointerException} is thrown.
-     *
-     * @param key The key whose associated data is to be retrieved.
-     * @return A {@link CompletableFuture} containing the retrieved data.
-     * @throws NullPointerException If the key does not exist in the database.
-     */
-    public CompletableFuture<D> retrieve(final K key) {
-        return CompletableFuture.supplyAsync(() -> {
-            long pointer = this.pointers.getOrDefault(key, INVALID_POINTER);
-
-            if (pointer == INVALID_POINTER)
-                return null;
-
-            var dataObject = this.dataPool.borrow();
-            var raf = dataObject.file();
-            try {
-                raf.seek(pointer * dataChunkSize);
-                raf.read(emptyData);
-                this.dataPool.recycle(dataObject);  // Place the random access file back into the pool
-
-                return this.deconstructData(emptyData);
-            } catch (IOException e) {
-                throw new RuntimeException("Could not load from database: " + e.getMessage());
-            }
-        });
-    }
-
-    /**
-     * Shuts down the ChunkDatabase, ensuring all resources are properly released.
-     * This method waits for all pending tasks in the ExecutorService to complete,
-     * with a configurable timeout, before closing the object pools.
-     *
-     * @param timeout  the maximum time to wait for tasks to complete
-     * @param unit     the time unit of the timeout argument
-     * @return true if shutdown completed successfully, false if it timed out or was interrupted
-     */
-    public boolean shutdown(long timeout, java.util.concurrent.TimeUnit unit) {
-        boolean shutdownSuccessful = false;
+        this.folder = Paths.get(folder);
+        Path keyPath = this.folder.resolve(KEY_FILE);
+        Path dataPath = this.folder.resolve(DATA_FILE);
+        Path unusedPath = this.folder.resolve(UNUSED_FILE);
 
         try {
-            service.shutdown(); // Stops accepting new tasks
+            // Ensure the storage directory exists
+            Files.createDirectories(this.folder);
 
-            // Wait for all tasks to finish up to the specified timeout
-            if (!service.awaitTermination(timeout, unit)) {
-                // If timeout occurs, forcefully terminate remaining tasks
-                List<Runnable> unfinishedTasks = service.shutdownNow();
-                System.err.println("Timeout occurred after " + timeout + " " + unit + ". Forcibly terminated " + unfinishedTasks.size() + " tasks.");
-                // Partial success due to timeout
-            } else {
-                shutdownSuccessful = true; // Full success
+            // Initialize new database files with pre-allocated chunks if they don't exist
+            if (!Files.exists(keyPath) && !Files.exists(dataPath) && chunkAllocation > 0) {
+                Files.write(keyPath, new byte[keyChunkSize * chunkAllocation]);
+                Files.write(dataPath, new byte[dataChunkSize * chunkAllocation]);
+                for (int i = chunkAllocation; i > 0; i--)
+                    this.unusedChunks.push(i - 1);
             }
 
-            // Step 2: Close the object pools after tasks are done
-            keyPool.close();
-            dataPool.close();
-
-            // Step 3: Clear internal state (optional)
-            pointers.clear();
-            locks.clear();
-        } catch (InterruptedException e) {
-            // Handle interruption during shutdown
-            service.shutdownNow(); // Force shutdown if interrupted
-            Thread.currentThread().interrupt(); // Restore interrupted status
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to shut down ChunkDatabase properly", e);
+            // Load unused chunk indices from file
+            if (Files.exists(unusedPath)) {
+                ByteBuffer buffer = ByteBuffer.wrap(Files.readAllBytes(unusedPath));
+                while (buffer.remaining() >= Long.BYTES)
+                    this.unusedChunks.push(buffer.getLong());
+            } else {
+                Files.createFile(unusedPath);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Cannot create chunk database directory: " + this.folder, e);
         }
 
-        return shutdownSuccessful;
+        // Load existing key pointers from the key file
+        if (Files.exists(keyPath)) {
+            try {
+                ByteBuffer buffer = ByteBuffer.wrap(Files.readAllBytes(keyPath));
+                while (buffer.remaining() >= keyChunkSize) {
+                    long pointer = buffer.position() / keyChunkSize;
+                    byte[] data = new byte[keyChunkSize];
+                    buffer.get(data);
+                    K key = this.keyStrategy.deconstruct(data);
+                    if (key != null) {
+                        this.pointers.put(key, pointer);
+                    }
+                }
+            } catch (IOException e) {
+                throw new RuntimeException("Cannot read chunk database pointer file: " + keyPath, e);
+            }
+        }
+
+        // Initialize object pools for file access
+        this.keyPool = new ObjectPool<>(new RAFPoolFactory(keyPath.toString()), 200);
+        this.dataPool = new ObjectPool<>(new RAFPoolFactory(dataPath.toString()), 200);
     }
 
+    /**
+     * Creates a new entry in the database with the specified key and data.
+     *
+     * <p>The method ensures the key does not already exist, serializes the key and data, and writes
+     * them to their respective files at a new or reused chunk index. Padding is applied to maintain
+     * fixed-size chunks. Operations are thread-safe using a per-key lock.</p>
+     *
+     * @param key  The key for the new entry.
+     * @param data The data to store.
+     * @throws RuntimeException          If the key exists or an I/O error occurs.
+     * @throws IndexOutOfBoundsException If the serialized key or data exceeds the chunk size.
+     * @throws NullPointerException      If the key or data is null.
+     */
+    public void create(final K key, final D data) {
+        Objects.requireNonNull(key, "Key cannot be null");
+        Objects.requireNonNull(data, "Data cannot be written as null");
+
+        if (pointers.containsKey(key))
+            throw new RuntimeException("Key already exists: " + key);
+
+        ReentrantLock lock = this.locks.computeIfAbsent(key, _ -> new ReentrantLock());
+        lock.lock();
+
+        RAFPoolObject keyObject = this.keyPool.borrow();
+        RAFPoolObject dataObject = this.dataPool.borrow();
+        RandomAccessFile keyRAF = keyObject.file();
+        RandomAccessFile dataRAF = dataObject.file();
+        try {
+
+            // Serialize key and data
+            byte[] keyData = this.keyStrategy.construct(key);
+            if (keyData.length > this.keyChunkSize)
+                throw new IndexOutOfBoundsException("Key chunk size must be <= the database key chunk size");
+
+            byte[] construction = this.dataStrategy.construct(data);
+            if (construction.length > this.dataChunkSize)
+                throw new IndexOutOfBoundsException("Data chunk size must be <= the database data chunk size");
+
+            // Determine chunk index (reuse unused or append)
+            long pointer = this.unusedChunks.pop();
+            long end = keyRAF.length() / keyChunkSize;
+
+            if (pointer == -1)
+                pointer = end;
+
+            // Write key data
+            keyRAF.seek(pointer * this.keyChunkSize);
+            keyRAF.write(keyData);
+            int remaining = this.keyChunkSize - keyData.length;
+            if (remaining > 0 && pointer == end)
+                keyRAF.write(new byte[remaining]);
+
+            // Write data
+            dataRAF.seek(pointer * this.dataChunkSize);
+            dataRAF.write(construction);
+            remaining = this.dataChunkSize - construction.length;
+            if (remaining > 0 && pointer == end)
+                dataRAF.write(new byte[remaining]);
+
+            // Store pointer
+            this.pointers.put(key, pointer);
+        } catch (IOException e) {
+            throw new RuntimeException("Error creating new chunk: " + e.getMessage(), e);
+        } finally {
+            this.keyPool.recycle(keyObject);
+            this.dataPool.recycle(dataObject);
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Updates the data associated with an existing key.
+     *
+     * <p>The method verifies the key exists, serializes the new data, and overwrites the existing
+     * data chunk. Padding ensures the chunk remains fixed-size. The operation is thread-safe using
+     * a per-key lock.</p>
+     *
+     * @param key  The key whose data is to be updated.
+     * @param data The new data.
+     * @throws NullPointerException      If the key or data is null.
+     * @throws IndexOutOfBoundsException If the serialized data exceeds the chunk size.
+     * @throws RuntimeException          If an I/O error occurs.
+     */
+    public void update(final K key, final D data) {
+        Objects.requireNonNull(key, "Key cannot be null");
+        Objects.requireNonNull(data, "Data cannot be written as null");
+
+        Long pointer = this.pointers.get(key);
+        if (pointer == null)
+            throw new NullPointerException("WTF");
+
+        ReentrantLock lock = this.locks.computeIfAbsent(key, _ -> new ReentrantLock());
+        lock.lock();
+
+        RAFPoolObject dataObject = this.dataPool.borrow();
+        RandomAccessFile dataRAF = dataObject.file();
+        try {
+            byte[] construction = this.dataStrategy.construct(data);
+
+            dataRAF.seek(pointer * this.dataChunkSize);
+            dataRAF.write(construction);
+        } catch (IOException e) {
+            throw new RuntimeException("Error updating chunk: " + e.getMessage(), e);
+        } finally {
+            this.dataPool.recycle(dataObject);
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Deletes the entry associated with the specified key.
+     *
+     * <p>The method marks the key and data chunks as deleted by overwriting them with zeros and
+     * adds the chunk index to the unused stack. The key's pointer and lock are removed. The
+     * operation is thread-safe.</p>
+     *
+     * @param key The key to delete.
+     * @throws NullPointerException If the key is null.
+     * @throws RuntimeException     If an I/O error occurs.
+     */
+    public void delete(final K key) {
+        Objects.requireNonNull(key, "Cannot delete with null key");
+
+        Long pointer = this.pointers.get(key);
+        if (pointer == null)
+            return;
+
+        ReentrantLock lock = this.locks.computeIfAbsent(key, _ -> new ReentrantLock());
+        lock.lock();
+
+        RAFPoolObject keyObject = keyObject = this.keyPool.borrow();
+        RAFPoolObject dataObject = dataObject = this.dataPool.borrow();
+        try {
+            this.pointers.remove(key);
+            this.unusedChunks.push(pointer);
+
+            RandomAccessFile keyRAF = keyObject.file();
+            RandomAccessFile dataRAF = dataObject.file();
+
+            keyRAF.seek(pointer * this.keyChunkSize);
+            keyRAF.write(emptyKey);
+
+            dataRAF.seek(pointer * this.dataChunkSize);
+            dataRAF.write(emptyData);
+        } catch (IOException e) {
+            throw new RuntimeException("Could not delete entry from database: " + e.getMessage(), e);
+        } finally {
+            if (keyObject != null) this.keyPool.recycle(keyObject);
+            if (dataObject != null) this.dataPool.recycle(dataObject);
+            lock.unlock();
+            this.locks.remove(key);
+        }
+    }
+
+    /**
+     * Retrieves the data associated with the specified key.
+     *
+     * <p>The method reads the data chunk at the key's pointer and deserializes it using the
+     * data strategy. Returns null if the key does not exist.</p>
+     *
+     * @param key The key whose data is to be retrieved.
+     * @return The deserialized data, or null if the key is not found.
+     * @throws NullPointerException If the key is null.
+     * @throws RuntimeException     If an I/O error occurs.
+     */
+    public D retrieve(final K key) {
+        Objects.requireNonNull(key, "Cannot retrieve with null key");
+
+        Long pointer = this.pointers.get(key);
+        if (pointer == null)
+            return null;
+
+        RAFPoolObject dataObject = this.dataPool.borrow();
+        RandomAccessFile raf = dataObject.file();
+        try {
+            byte[] data = new byte[dataChunkSize];
+            raf.seek(pointer * dataChunkSize);
+            raf.read(data);
+            return this.dataStrategy.deconstruct(data);
+        } catch (IOException e) {
+            throw new RuntimeException("Could not load from database: " + e.getMessage(), e);
+        } finally {
+            this.dataPool.recycle(dataObject);
+        }
+    }
+
+    /**
+     * Closes the database, saving unused chunk indices and releasing resources.
+     *
+     * <p>Writes the unused chunk indices to the unused file and closes the file pools.
+     * Clears the pointers map to free memory.</p>
+     *
+     * @throws RuntimeException If an I/O error occurs while saving unused chunks.
+     */
+    @Override
+    public void close() {
+        try (FileChannel channel = FileChannel.open(this.folder.resolve(UNUSED_FILE),
+                StandardOpenOption.READ, StandardOpenOption.WRITE, StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING)) {
+            ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES * this.unusedChunks.size());
+            for (Long unused : unusedChunks) {
+                buffer.putLong(unused);
+            }
+            buffer.flip();
+            channel.write(buffer);
+            channel.force(true);
+        } catch (IOException e) {
+            throw new RuntimeException("Could not store unused chunks: " + e.getMessage(), e);
+        }
+
+        keyPool.close();
+        dataPool.close();
+        pointers.clear();
+    }
 }

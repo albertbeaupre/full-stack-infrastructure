@@ -106,27 +106,30 @@ public class EventPublisher {
      */
     private TreeSet<EventListener> createSet(Class<? extends Event> clazz) {
         return new TreeSet<>((listener1, listener2) -> {
-            try {
-                int compare = getCompare(clazz, listener1, listener2);
-                if (compare == 0) {
-                    // Ensure stable ordering for equal priorities
-                    return Integer.compare(System.identityHashCode(listener1), System.identityHashCode(listener2));
-                }
-                return compare;
-            } catch (NoSuchMethodException e) {
-                throw new RuntimeException("Failed to find handle method for listener", e);
-            }
+            int compare = getCompare(clazz, listener1, listener2);
+            if (compare == 0)
+                return Integer.compare(System.identityHashCode(listener1), System.identityHashCode(listener2));
+            return compare;
         });
     }
 
-    private static int getCompare(Class<? extends Event> clazz, EventListener listener1, EventListener listener2) throws NoSuchMethodException {
-        Method method1 = listener1.getClass().getMethod("handle", clazz);
-        Method method2 = listener2.getClass().getMethod("handle", clazz);
-        EventPriority annotation1 = method1.getAnnotation(EventPriority.class);
-        EventPriority annotation2 = method2.getAnnotation(EventPriority.class);
-        int priority1 = annotation1 != null ? annotation1.priority() : 0; // Assuming value() from EventPriority
-        int priority2 = annotation2 != null ? annotation2.priority() : 0;
+    private static int getCompare(Class<? extends Event> clazz, EventListener listener1, EventListener listener2) {
+        int priority1 = extractPriority(listener1, clazz);
+        int priority2 = extractPriority(listener2, clazz);
 
         return Integer.compare(priority2, priority1);
     }
+
+    private static int extractPriority(EventListener listener, Class<? extends Event> clazz) {
+        for (Method method : listener.getClass().getMethods()) {
+            if (!method.getName().equals("handle")) continue;
+            Class<?>[] params = method.getParameterTypes();
+            if (params.length == 1 && clazz.isAssignableFrom(params[0])) {
+                EventPriority annotation = method.getAnnotation(EventPriority.class);
+                return annotation != null ? annotation.priority() : 0;
+            }
+        }
+        return 0;
+    }
+
 }

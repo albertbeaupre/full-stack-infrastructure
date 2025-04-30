@@ -1,6 +1,8 @@
 package infrastructure.collections.stack;
 
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 /**
  * A generic implementation of a dynamic stack in Java. This is considered fast because it uses fewer
@@ -10,7 +12,7 @@ import java.util.Arrays;
  * @version 1.0
  * @since May 1st, 2024
  */
-public class LongFastStack {
+public class LongFastStack implements Iterable<Long> {
     private long[] stack;
     private int ordinal;
 
@@ -40,8 +42,9 @@ public class LongFastStack {
             // If the array is full, create a new array with double the capacity
             long[] copy = new long[stack.length * 2];
             // Copy the elements from the old array to the new array
-            for (int i = 0; i < stack.length; i++)
+            for (int i = 0; i < stack.length; i++) {
                 copy[i] = stack[i];
+            }
             // Update the reference to the new array
             stack = copy;
         }
@@ -51,7 +54,7 @@ public class LongFastStack {
     /**
      * Removes and returns the element at the top of the stack.
      *
-     * @return the element removed from the top of the stack
+     * @return the element removed from the top of the stack, or -1 if empty
      */
     public long pop() {
         if (ordinal == 0)
@@ -67,6 +70,8 @@ public class LongFastStack {
      * @return the element at the top of the stack
      */
     public long peek() {
+        if (ordinal == 0)
+            throw new NoSuchElementException("Stack is empty.");
         return stack[ordinal - 1];
     }
 
@@ -89,11 +94,10 @@ public class LongFastStack {
     }
 
     /**
-     * Clears the stack by setting the number of elements to zero and filling the array with null values.
+     * Clears the stack by setting the number of elements to zero and filling the array with zeros.
      */
     public void clear() {
-        for (int i = 0, len = stack.length; i < len; i++)
-            stack[i] = 0;
+        Arrays.fill(stack, 0);
         ordinal = 0;
     }
 
@@ -105,5 +109,45 @@ public class LongFastStack {
     @Override
     public String toString() {
         return Arrays.toString(Arrays.copyOf(stack, ordinal));
+    }
+
+    /**
+     * Returns an iterator over the elements in this stack in LIFO order (top-of-stack to bottom).
+     *
+     * @return an Iterator.
+     */
+    @Override
+    public Iterator<Long> iterator() {
+        return new LongFastStackIterator();
+    }
+
+    /**
+     * An iterator that iterates over the elements of the LongFastStack.
+     */
+    private class LongFastStackIterator implements Iterator<Long> {
+        // Start iteration from the top-of-stack (last pushed element)
+        private int currentIndex = ordinal - 1;
+
+        @Override
+        public boolean hasNext() {
+            return currentIndex >= 0;
+        }
+
+        @Override
+        public Long next() {
+            if (!hasNext())
+                throw new NoSuchElementException();
+            return stack[currentIndex--];
+        }
+
+        /**
+         * The remove operation is not supported by this iterator.
+         *
+         * @throws UnsupportedOperationException always.
+         */
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException("Remove not supported.");
+        }
     }
 }

@@ -8,7 +8,7 @@ plugins {
 java {
     // Set toolchain to Java 17 for consistency
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(17))
+        languageVersion.set(JavaLanguageVersion.of(23))
     }
 }
 
@@ -19,7 +19,7 @@ idea {
 }
 
 tasks.withType<JavaCompile> {
-    options.compilerArgs.addAll(listOf("--enable-preview", "--release", "17")) // Updated to 17
+    options.compilerArgs.addAll(listOf("--enable-preview", "--release", "23")) // Updated to 17
 }
 
 tasks.withType<Test> {
@@ -36,6 +36,8 @@ val gdxVersion = "1.13.1"
 val ph_cssVersion = "7.0.4"
 val netty_version = "4.1.108.Final"
 val jmh_version = "1.37"
+val berkeleydb_version = "18.3.12"
+val sqlite_version = "3.42.0.0"
 
 repositories {
     mavenCentral()
@@ -52,6 +54,13 @@ dependencies {
     implementation("com.helger:ph-css:$ph_cssVersion")
     implementation("org.openjdk.jmh:jmh-core:$jmh_version")
     annotationProcessor("org.openjdk.jmh:jmh-generator-annprocess:$jmh_version")
+
+
+    // Berkeley DB JE
+    implementation("com.sleepycat:je:$berkeleydb_version")
+
+    // SQLite JDBC
+    implementation("org.xerial:sqlite-jdbc:$sqlite_version")
 }
 
 tasks.test {
