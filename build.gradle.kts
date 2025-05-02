@@ -3,14 +3,7 @@ plugins {
     idea
     id("me.champeau.jmh") version "0.7.2"
     id("maven-publish")
-    id("signing")
-    id("io.github.gradle-nexus.publish-plugin") version "2.0.0"
 }
-
-
-
-group = "io.github.albertbeaupre"
-version = "0.1"
 
 java {
     toolchain {
@@ -26,7 +19,6 @@ idea {
 
 tasks.withType<JavaCompile> {
     options.compilerArgs.addAll(listOf("--enable-preview", "--release", "23"))
-    options.encoding = "UTF-8"
 }
 
 tasks.withType<Test> {
@@ -37,15 +29,17 @@ tasks.withType<JavaExec> {
     jvmArgs("--enable-preview")
 }
 
+group = "full-stack"
+version = "0.1"
 val gdxVersion = "1.13.1"
 val ph_cssVersion = "7.0.4"
 val netty_version = "4.1.108.Final"
 val jmh_version = "1.37"
 val berkeleydb_version = "18.3.12"
 val sqlite_version = "3.42.0.0"
-val closure_compiler_version = "v20250407"
-val html_compressor_version = "1.5.2"
-val fast_json_version = "2.0.57"
+var closure_compiler_version = "v20250407"
+var html_compressor_version = "1.5.2"
+var fast_json_version = "2.0.57";
 
 repositories {
     mavenCentral()
@@ -73,77 +67,21 @@ tasks.test {
 
 publishing {
     publications {
-        create<MavenPublication>("mavenJava") {
-            // publish the “java” component
-            from(components["java"])
-
-            // keep these in sync with your group/version/artifactId
-            groupId    = project.group.toString()
+        create<MavenPublication>("maven") {
+            groupId = group.toString()
             artifactId = "full-stack-infrastructure"
-            version    = project.version.toString()
-
-            pom {
-                name.set("full-stack-infrastructure")
-                description.set("A full-stack infrastructure Java library")
-                url.set("https://github.com/albertBeaupre/full-stack-infrastructure")
-                licenses {
-                    license {
-                        name.set("MIT License")
-                        url.set("https://opensource.org/licenses/MIT")
-                    }
-                }
-                developers {
-                    developer {
-                        id.set("albertbeaupre")
-                        name.set("Albert Beaupre")
-                        email.set("you@example.com")
-                    }
-                }
-                scm {
-                    connection.set("scm:git:git://github.com/albertBeaupre/full-stack-infrastructure.git")
-                    developerConnection.set("scm:git:ssh://github.com:albertBeaupre/full-stack-infrastructure.git")
-                    url.set("https://github.com/albertbeaupre/full-stack-infrastructure")
-                }
-            }
+            version = version.toString()
+            from(components["java"])
         }
     }
-
     repositories {
         maven {
-            name = "sonatypeSnapshots"
-            url  = uri("https://s01.oss.sonatype.org/content/repositories/snapshots/")
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/albertBeaupre/full-stack-infrastructure")
             credentials {
-                username = findProperty("sonatypeUsername") as String?
-                    ?: System.getenv("SONATYPE_USERNAME")
-                password = findProperty("sonatypePassword") as String?
-                    ?: System.getenv("SONATYPE_PASSWORD")
+                username = System.getenv("GITHUB_ACTOR") ?: "default-actor"
+                password = System.getenv("GITHUB_TOKEN") ?: "default-token"
             }
         }
     }
 }
-
-
-
-signing {
-    useInMemoryPgpKeys(
-        findProperty("signing.keyId") as String?,
-        findProperty("signing.secretKey") as String?,
-        findProperty("signing.password") as String?
-    )
-    sign(publishing.publications["mavenJava"])
-}
-
-nexusPublishing {
-    repositories {
-        sonatype {
-            // override the legacy host to the new, token‑friendly one
-            nexusUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
-            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
-            // your sonatypeUsername/sonatypePassword from ~/.gradle/gradle.properties
-            // will be picked up automatically, so no need to re‑declare them here
-        }
-    }
-}
-
-
-
