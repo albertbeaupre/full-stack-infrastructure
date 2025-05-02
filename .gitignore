@@ -6,8 +6,6 @@ build/
 
 src/test/
 
-/src/main/resources/
-
 ### IntelliJ IDEA ###
 .idea/
 .idea/modules.xml

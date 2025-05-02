@@ -1,0 +1,151 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "johndoe",
+      "email": "john@example.com",
+      "profile": {
+        "firstName": "John",
+        "lastName": "Doe",
+        "age": 34,
+        "address": {
+          "street": "123 Main Street",
+          "city": "Springfield",
+          "state": "IL",
+          "postalCode": "62704"
+        }
+      },
+      "orders": [
+        {
+          "orderId": 1001,
+          "date": "2025-05-01T14:30:00Z",
+          "status": "shipped",
+          "items": [
+            {
+              "productId": 101,
+              "quantity": 2,
+              "price": 29.99
+            },
+            {
+              "productId": 102,
+              "quantity": 1,
+              "price": 199.99
+            }
+          ],
+          "total": 259.97
+        },
+        {
+          "orderId": 1002,
+          "date": "2025-05-02T10:15:00Z",
+          "status": "processing",
+          "items": [
+            {
+              "productId": 103,
+              "quantity": 3,
+              "price": 9.99
+            }
+          ],
+          "total": 29.97
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "username": "janedoe",
+      "email": "jane@example.com",
+      "profile": {
+        "firstName": "Jane",
+        "lastName": "Doe",
+        "age": 28,
+        "address": {
+          "street": "456 Oak Street",
+          "city": "Metropolis",
+          "state": "NY",
+          "postalCode": "10001"
+        }
+      },
+      "orders": [
+        {
+          "orderId": 1003,
+          "date": "2025-05-03T08:00:00Z",
+          "status": "delivered",
+          "items": [
+            {
+              "productId": 104,
+              "quantity": 1,
+              "price": 399.99
+            }
+          ],
+          "total": 399.99
+        }
+      ]
+    }
+  ],
+  "products": [
+    {
+      "id": 101,
+      "name": "Wireless Mouse",
+      "description": "Ergonomic wireless mouse with adjustable DPI settings.",
+      "price": 29.99,
+      "stock": 250,
+      "categories": ["electronics", "accessories"]
+    },
+    {
+      "id": 102,
+      "name": "Mechanical Keyboard",
+      "description": "RGB backlit mechanical keyboard with customizable keys.",
+      "price": 199.99,
+      "stock": 100,
+      "categories": ["electronics", "accessories", "gaming"]
+    },
+    {
+      "id": 103,
+      "name": "USB-C Cable",
+      "description": "Durable braided USB-C charging cable, 1 meter.",
+      "price": 9.99,
+      "stock": 500,
+      "categories": ["electronics", "accessories"]
+    },
+    {
+      "id": 104,
+      "name": "Gaming Chair",
+      "description": "Comfortable gaming chair with lumbar support.",
+      "price": 399.99,
+      "stock": 75,
+      "categories": ["furniture", "gaming"]
+    }
+  ],
+  "reviews": [
+    {
+      "reviewId": 5001,
+      "productId": 101,
+      "userId": 1,
+      "rating": 4.5,
+      "comment": "Great mouse, very responsive!",
+      "date": "2025-05-01T17:45:00Z"
+    },
+    {
+      "reviewId": 5002,
+      "productId": 102,
+      "userId": 2,
+      "rating": 5.0,
+      "comment": "Best keyboard I've ever owned!",
+      "date": "2025-05-03T12:20:00Z"
+    },
+    {
+      "reviewId": 5003,
+      "productId": 104,
+      "userId": 2,
+      "rating": 4.0,
+      "comment": "Chair is comfy, but setup took a while.",
+      "date": "2025-05-04T09:30:00Z"
+    }
+  ],
+  "metadata": {
+    "generatedAt": "2025-05-04T12:00:00Z",
+    "totalUsers": 2,
+    "totalProducts": 4,
+    "totalOrders": 3,
+    "totalReviews": 3
+  }
+}
