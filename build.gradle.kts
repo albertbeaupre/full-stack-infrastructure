@@ -29,7 +29,7 @@ tasks.withType<JavaExec> {
     jvmArgs("--enable-preview")
 }
 
-group = "full-stack"
+group = "io.github.albertbeaupre"
 version = "0.1"
 val gdxVersion = "1.13.1"
 val ph_cssVersion = "7.0.4"
