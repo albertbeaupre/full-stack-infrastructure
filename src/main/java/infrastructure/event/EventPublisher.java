@@ -41,6 +41,18 @@ public class EventPublisher {
     private final ConcurrentHashMap<Class<? extends Event>, TreeSet<EventListener>> listeners = new ConcurrentHashMap<>();
 
     /**
+     * Determines whether an event type has any registered listeners.
+     *
+     * @param clazz the event class to check for registration; must not be null
+     * @return true if the event class has registered listeners, false otherwise
+     * @throws NullPointerException if the event class is null
+     */
+    public boolean isRegistered(Class<? extends Event> clazz) {
+        Objects.requireNonNull(clazz, "Event class must not be null");
+        return listeners.containsKey(clazz);
+    }
+
+    /**
      * Registers an {@code EventListener} to handle events of the specified type.
      * Listeners are ordered by priority (via {@link EventPriority}), with higher values executed first.
      *

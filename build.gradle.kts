@@ -6,7 +6,6 @@ plugins {
 }
 
 java {
-    // Set toolchain to Java 17 for consistency
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(23))
     }
@@ -19,15 +18,15 @@ idea {
 }
 
 tasks.withType<JavaCompile> {
-    options.compilerArgs.addAll(listOf("--enable-preview", "--release", "23")) // Updated to 17
+    options.compilerArgs.addAll(listOf("--enable-preview", "--release", "23"))
 }
 
 tasks.withType<Test> {
-    jvmArgs("--enable-preview") // Still valid for Java 17 preview features
+    jvmArgs("--enable-preview")
 }
 
 tasks.withType<JavaExec> {
-    jvmArgs("--enable-preview") // Still valid for Java 17 preview features
+    jvmArgs("--enable-preview")
 }
 
 group = "full-stack"
@@ -38,6 +37,9 @@ val netty_version = "4.1.108.Final"
 val jmh_version = "1.37"
 val berkeleydb_version = "18.3.12"
 val sqlite_version = "3.42.0.0"
+var closure_compiler_version = "v20250407"
+var html_compressor_version = "1.5.2"
+var fast_json_version = "2.0.57";
 
 repositories {
     mavenCentral()
@@ -52,15 +54,11 @@ dependencies {
     implementation("com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop")
     implementation("com.badlogicgames.gdx:gdx:$gdxVersion")
     implementation("com.helger:ph-css:$ph_cssVersion")
+    implementation("com.alibaba:fastjson:$fast_json_version")
     implementation("org.openjdk.jmh:jmh-core:$jmh_version")
+    implementation("com.google.javascript:closure-compiler:$closure_compiler_version")
+    implementation("com.googlecode.htmlcompressor:htmlcompressor:$html_compressor_version")
     annotationProcessor("org.openjdk.jmh:jmh-generator-annprocess:$jmh_version")
-
-
-    // Berkeley DB JE
-    implementation("com.sleepycat:je:$berkeleydb_version")
-
-    // SQLite JDBC
-    implementation("org.xerial:sqlite-jdbc:$sqlite_version")
 }
 
 tasks.test {
