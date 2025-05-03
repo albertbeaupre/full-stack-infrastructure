@@ -2,6 +2,7 @@ package infrastructure.net.web;
 
 import infrastructure.collections.queue.LongUUIDQueue;
 import infrastructure.net.web.ui.Component;
+import infrastructure.net.web.ui.Designer;
 import infrastructure.net.web.ui.ValueComponent;
 import infrastructure.net.web.ui.components.Button;
 import infrastructure.net.web.ui.components.TextField;
@@ -128,50 +129,8 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<WebSocketFrame
             SessionContext.register(ctx.channel(), session);
             SessionContext.set(session);
 
-            VerticalLayout layout = new VerticalLayout();
-            layout.getStyle()
-                    .set("display", "flex")
-                    .set("flex-direction", "column")
-                    .set("align-items", "stretch")
-                    .set("gap", "20px")
-                    .set("padding", "50px")
-                    .set("max-width", "380px")
-                    .set("margin", "80px auto")
-                    .set("background", "#ffffff")
-                    .set("border-radius", "12px")
-                    .set("box-shadow", "0 10px 25px rgba(0, 0, 0, 0.15)")
-                    .set("border", "1px solid #e0e0e0");
-
-            Button button = new Button("Submit");
-            button.getStyle()
-                    .set("padding", "0.9em 1.8em")
-                    .set("border", "none")
-                    .set("border-radius", "8px")
-                    .set("color", "#ffffff")
-                    .set("font-size", "1rem")
-                    .set("font-weight", "600")
-                    .set("cursor", "pointer")
-                    .set("background", "#4f46e5")
-                    .set("transition", "transform 0.15s ease, background 0.15s ease")
-                    .set("box-shadow", "0 6px 12px rgba(79,70,229,0.25)");
-
-            TextField field = new TextField();
-            field.getStyle()
-                    .set("padding", "0.8em 1.2em")
-                    .set("font-size", "1rem")
-                    .set("border", "1px solid #d1d5db")
-                    .set("border-radius", "8px")
-                    .set("color", "#374151")
-                    .set("background-color", "#f9fafb")
-                    .set("box-shadow", "inset 0 2px 4px rgba(209,213,219,0.4)")
-                    .set("transition", "border-color 0.2s ease, box-shadow 0.2s ease")
-                    .set("outline", "none");
-            button.addClickListener(e -> {
-                button.setText(field.getValue());
-            });
-
-            layout.add(field, button);
-            session.getUI().add(layout);
+            session.getUI().add(Designer.button("Hey!").component());
+            session.getUI().add(Designer.textField("Hey!").component());
         } else {
             super.userEventTriggered(ctx, evt);
         }

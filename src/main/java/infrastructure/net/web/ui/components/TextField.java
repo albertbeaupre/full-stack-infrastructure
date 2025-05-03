@@ -14,6 +14,7 @@ import java.util.Map;
  *   <li>Is represented by an {@code <input type="text">} element.</li>
  *   <li>Automatically wires its "input" events to update its internal value.</li>
  *   <li>Provides methods to programmatically set and retrieve the text.</li>
+ *   <li>Supports an optional placeholder attribute displayed when the field is empty.</li>
  * </ul>
  * <p>
  * Subclasses may override lifecycle methods to add additional behavior,
@@ -31,13 +32,61 @@ public class TextField extends ValueComponent {
     private String value;
 
     /**
-     * Constructs a new TextField component.
+     * Placeholder text displayed when the input is empty.
+     */
+    private String placeholder;
+
+    /**
+     * Constructs a new TextField component with no placeholder.
      * <p>
      * Initializes this component as an {@code <input>} element whose
      * {@code type} attribute will be set to "text" during creation.
      */
     public TextField() {
         super("input");
+    }
+
+    /**
+     * Constructs a new TextField component with the given placeholder text.
+     * <p>
+     * The placeholder will be applied immediately and displayed in the
+     * input element until the user enters a value.
+     *
+     * @param placeholder the placeholder text to display when the field is empty
+     */
+    public TextField(String placeholder) {
+        super("input");
+        setPlaceholder(placeholder);
+    }
+
+    /**
+     * Updates the placeholder attribute of the underlying input element.
+     * <p>
+     * Queues a {@link DOMUpdateType#SET_ATTRIBUTE} update to set the
+     * {@code placeholder} attribute to the specified text and flushes
+     * the update immediately if the component is attached.
+     *
+     * @param text the new placeholder text to display (null or empty clears it)
+     */
+    public void setPlaceholder(String text) {
+        this.placeholder = text;
+        this.queueForDispatch(
+                DOMUpdateType.SET_ATTRIBUTE,
+                Map.of(
+                        DOMUpdateParam.KEY, "placeholder",
+                        DOMUpdateParam.VALUE, text
+                )
+        );
+        this.push();
+    }
+
+    /**
+     * Returns the currently configured placeholder text.
+     *
+     * @return the placeholder text, or {@code null} if none has been set
+     */
+    public String getPlaceholder() {
+        return placeholder;
     }
 
     /**
@@ -83,7 +132,7 @@ public class TextField extends ValueComponent {
     /**
      * Retrieves the current text stored in this field.
      *
-     * @return the field's current text value
+     * @return the field's current text value, or {@code null} if never set
      */
     @Override
     public String getValue() {

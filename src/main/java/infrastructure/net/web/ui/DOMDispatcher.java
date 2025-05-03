@@ -29,15 +29,6 @@ public class DOMDispatcher {
     }
 
     /**
-     * Returns whether there are any pending updates in the queue.
-     *
-     * @return true if updates are pending, false otherwise
-     */
-    public boolean hasUpdates() {
-        return !updateQueue.isEmpty();
-    }
-
-    /**
      * Flushes the update queue to a single client channel over WebSocket.
      *
      * @param channel the channel to send updates to

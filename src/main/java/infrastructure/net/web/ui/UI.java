@@ -33,11 +33,6 @@ import java.util.concurrent.Executors;
 public class UI extends Component {
 
     /**
-     * Router responsible for handling navigation and mapping URIs to UI actions.
-     */
-    private final Router router = new Router(this);
-
-    /**
      * Queue for generating and recycling integer-based component IDs.
      */
     private final IntUUIDQueue componentIDs = new IntUUIDQueue();
@@ -61,8 +56,8 @@ public class UI extends Component {
      */
     public UI() {
         super("div");
-        // Reserve the root component's ID so children start from the next ID
-        this.componentIDs.pop();
+
+        this.componentIDs.pop(); // Reserve the root component's ID so children start from the next ID
     }
 
     /**
@@ -122,15 +117,6 @@ public class UI extends Component {
         Component removed = this.components.remove(componentID);
         this.componentIDs.push(componentID);
         return removed;
-    }
-
-    /**
-     * Returns the {@link Router} instance for this UI.
-     *
-     * @return the router tied to this UI
-     */
-    public Router getRouter() {
-        return router;
     }
 
     /**

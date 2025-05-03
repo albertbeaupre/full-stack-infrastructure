@@ -52,7 +52,7 @@ public class Button extends Component {
      */
     public Button(String text) {
         super("button");
-        this.text = text;
+        setText(text);
     }
 
     /**
@@ -86,10 +86,7 @@ public class Button extends Component {
      */
     @Override
     protected void create() {
-        // Center the button’s label text
-        this.getStyle().textAlign(TextAlign.CENTER);
-        // Apply initial text if provided
-        setText(text);
+
     }
 
     /**
@@ -102,5 +99,14 @@ public class Button extends Component {
     @Override
     protected void destroy() {
         // No resources to clean up for Button
+    }
+
+    /**
+     * Retrieves the current label text displayed by the button.
+     *
+     * @return the current label text, or null if no text has been set
+     */
+    public String getText() {
+        return text;
     }
 }

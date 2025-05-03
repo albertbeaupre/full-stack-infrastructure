@@ -88,8 +88,7 @@ public class StaticFileHandler extends SimpleChannelInboundHandler<FullHttpReque
         if (Files.exists(resolved) && Files.isRegularFile(resolved)) {
             return resolved;
         } else {
-            // Serve index.html if not found
-            return STATIC_ROOT.resolve(DEFAULT_FILE);
+            return STATIC_ROOT.resolve(DEFAULT_FILE); // Serve index.html if not found
         }
     }
 
@@ -156,16 +155,10 @@ public class StaticFileHandler extends SimpleChannelInboundHandler<FullHttpReque
      * @throws IOException if an I/O error occurs reading the file
      */
     public void reload(String uri) throws IOException {
-        // Resolve the actual file path on disk
-        Path path = resolveRequestedPath(uri);
-
+        Path path = resolveRequestedPath(uri); // Resolve the actual file path on disk
         String filename = path.getFileName().toString();
         WebFileType fileType = WebFileType.fromFilename(filename);
-
-        // Read fresh content (using the same loader logic)
-        byte[] freshBytes = fileType.load(path);
-
-        // Overwrite the cache entry
-        CONTENT_CACHE.put(uri, freshBytes);
+        byte[] freshBytes = fileType.load(path); // Read fresh content (using the same loader logic)
+        CONTENT_CACHE.put(uri, freshBytes); // Overwrite the cache entry
     }
 }

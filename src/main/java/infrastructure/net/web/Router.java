@@ -1,8 +1,5 @@
 package infrastructure.net.web;
 
-import infrastructure.net.web.ui.DOMUpdate;
-import infrastructure.net.web.ui.DOMUpdateParam;
-import infrastructure.net.web.ui.DOMUpdateType;
 import infrastructure.net.web.ui.UI;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -16,9 +13,11 @@ public class Router {
 
     private final UI ui;
     private final Map<String, Consumer<UI>> routes = new HashMap<>();
+    private final Consumer<String> noRouteHandler;
 
-    public Router(UI ui) {
+    public Router(UI ui, Consumer<String> noRouteHandler) {
         this.ui = ui;
+        this.noRouteHandler = noRouteHandler;
     }
 
     /**
@@ -41,11 +40,7 @@ public class Router {
         if (handler != null) {
             handler.accept(ui);
         } else {
-            /* TODO ui.getDispatcher().queue(
-                    new DOMUpdate(DOMUpdateType.SET_TEXT, 0)
-                            .param(DOMUpdateParam.TEXT, "404 Not Found")
-            );
-            ui.push();*/
+            noRouteHandler.accept(path);
         }
     }
 

@@ -6,14 +6,9 @@ public class VerticalLayout extends Div {
 
     @Override
     protected void create() {
-        this.getStyle().textAlign(TextAlign.CENTER)
-                .borderRadius("5px")
-                .border("1px solid")
-                .padding("10px")
+        this.getStyle()
                 .display(Display.FLEX)
-                .flexDirection(FlexDirection.COLUMN)
-                .alignContent(AlignContent.CENTER)
-                .justifyContent(JustifyContent.CENTER);
+                .flexDirection(FlexDirection.COLUMN);
     }
 
     @Override
