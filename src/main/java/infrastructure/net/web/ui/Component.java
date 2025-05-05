@@ -41,11 +41,6 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
     private final DOMDispatcher dispatcher = new DOMDispatcher();
 
     /**
-     * Publishes application-level events to registered listeners.
-     */
-    private final EventPublisher publisher = new EventPublisher();
-
-    /**
      * Holds child components nested under this component.
      */
     private final ArrayList<Component> children = new ArrayList<>();
@@ -85,7 +80,7 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
      * <p>
      * If this instance <em>is</em> a {@link UI}, it serves as its own context;
      * otherwise it retrieves the current UI from the {@link SessionContext} and
-     * obtains a new component ID. Initializes a {@link Style} object scoped to
+     * gets a new component ID. Initializes a {@link Style} object scoped to
      * the generated component ID.
      *
      * @param tag the HTML tag name to render for this component
@@ -118,14 +113,14 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
     protected abstract void destroy();
 
     /**
-     * Adds one or more child components to this component.
+     * Adds one or more child parts to this component.
      * <p>
      * Each child is registered with the UI context, queued for a DOM append update,
      * initialized via {@link #create()}, and marked as attached if this component
      * is currently attached. Finally, all queued updates (including nested children)
      * are flushed to the client.
      *
-     * @param children one or more components to append as children
+     * @param children one or more parts to append as children
      */
     public void add(Component... children) {
         for (Component child : children) {
@@ -143,13 +138,13 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
     }
 
     /**
-     * Removes one or more child components from this component.
+     * Removes one or more child parts from this component.
      * <p>
      * Each child is detached, queued for a DOM remove update, recycled in the UI,
      * and cleaned up via {@link #destroy()}. Finally, all queued updates
      * (including nested children) are flushed to the client.
      *
-     * @param children one or more components to remove
+     * @param children one or more parts to remove
      */
     public void remove(Component... children) {
         for (Component child : children) {
@@ -181,37 +176,24 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
     }
 
     /**
-     * Publishes a custom application event to all registered listeners.
-     *
-     * @param event the event instance to dispatch
-     */
-    public void publish(Event event) {
-        this.publisher.publish(event);
-    }
-
-    /**
      * Registers an event listener for a specific event type and binds it to a DOM event.
      * <p>
      * If not already registered, queues a DOM update to add the corresponding browser
      * event listener. Then registers the listener with the internal {@link EventPublisher}.
      *
-     * @param <T>       the event subtype
-     * @param clazz     the class object of the event type
-     * @param listener  the listener to notify when the event occurs
-     * @param name      the DOM event name (e.g., "click", "keydown")
+     * @param <T>      the event subtype
+     * @param clazz    the class object of the event type
+     * @param listener the listener to notify when the event occurs
+     * @param name     the DOM event name (e.g., "click", "keydown")
      */
-    private <T extends Event> void registerEventListener(
-            Class<T> clazz,
-            EventListener<T> listener,
-            String name
-    ) {
-        if (!this.publisher.isRegistered(clazz)) {
+    private <T extends Event> void registerEventListener(Class<T> clazz, EventListener<T> listener, String name) {
+        if (!this.ui.getPublisher().isRegistered(clazz)) {
             this.dispatcher.queue(
                     new DOMUpdate(DOMUpdateType.ADD_EVENT_LISTENER, componentID)
                             .param(DOMUpdateParam.EVENT_NAME, name)
             );
         }
-        this.publisher.register(clazz, listener);
+        this.ui.getPublisher().register(clazz, listener);
         push();
     }
 
@@ -259,10 +241,24 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
     protected void push() {
         if (isAttached()) {
             this.dispatcher.flush(SessionContext.get().getChannel());
-            for (Component child : children) {
+            for (Component child : children)
                 child.push();
-            }
         }
+    }
+
+    /**
+     * Removes all child components from this component and queues a DOM update
+     * operation to clear the corresponding child elements in the UI.
+     * <p>
+     * This method clears the internal children list and invokes the
+     * {@link #queueForDispatch(DOMUpdateType)} method with the
+     * {@link DOMUpdateType#CLEAR_CHILDREN} type to ensure the client-side DOM
+     * reflects the removal.
+     */
+    public void clear() {
+        this.children.clear();
+        this.queueForDispatch(DOMUpdateType.CLEAR_CHILDREN);
+        push();
     }
 
     /**
@@ -287,15 +283,39 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
     }
 
     /**
-     * Queues a raw {@link DOMUpdate} operation with custom parameters.
-     * <p>
-     * Allows subclasses to dispatch arbitrary DOM updates beyond the provided API.
+     * Queues a DOM update operation for dispatch with the specified update type.
+     * Constructs a {@link DOMUpdate} instance using the provided update type and
+     * the component's unique identifier, then queues it for processing in the dispatcher.
      *
-     * @param type       the type of DOM update to queue
-     * @param parameters a map of parameters for the update
+     * @param type the type of DOM update to queue (e.g., updates related to attributes, styles, or child elements)
+     */
+    protected void queueForDispatch(DOMUpdateType type) {
+        this.dispatcher.queue(new DOMUpdate(type, getComponentID()));
+    }
+
+    /**
+     * Queues a DOM update operation for dispatch with the specified update type and parameters.
+     * Constructs a {@link DOMUpdate} instance using the provided update type, component ID,
+     * and parameters, then queues it for processing in the dispatcher.
+     *
+     * @param type       the type of DOM update to queue (e.g., updates related to attributes, styles, or child elements)
+     * @param parameters a map of parameters specifying the details of the DOM update (e.g., attributes or values)
      */
     protected void queueForDispatch(DOMUpdateType type, Map<DOMUpdateParam, Object> parameters) {
         this.dispatcher.queue(new DOMUpdate(type, getComponentID()).params(parameters));
+    }
+
+    /**
+     * Queues a DOM update operation for dispatch with specific type, parameter, and value.
+     * This method constructs a {@link DOMUpdate} instance using the provided update type,
+     * component ID, parameter, and value, and queues it for processing in the dispatcher.
+     *
+     * @param type  the type of DOM update to queue (e.g., setting an attribute or appending a child)
+     * @param param the parameter defining the aspect of the DOM to be updated (e.g., an attribute or property)
+     * @param value the value associated with the parameter for the update (e.g., the new attribute value)
+     */
+    protected void queueForDispatch(DOMUpdateType type, DOMUpdateParam param, Object value) {
+        this.dispatcher.queue(new DOMUpdate(type, getComponentID()).param(param, value));
     }
 
     /**

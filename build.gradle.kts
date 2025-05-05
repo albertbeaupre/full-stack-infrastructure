@@ -35,11 +35,10 @@ val gdxVersion = "1.13.1"
 val ph_cssVersion = "7.0.4"
 val netty_version = "4.1.108.Final"
 val jmh_version = "1.37"
-val berkeleydb_version = "18.3.12"
-val sqlite_version = "3.42.0.0"
 var closure_compiler_version = "v20250407"
 var html_compressor_version = "1.5.2"
-var fast_json_version = "2.0.57";
+var fast_json_version = "2.0.57"
+var slf4j_version = "2.0.17"
 
 repositories {
     mavenCentral()
@@ -58,6 +57,8 @@ dependencies {
     implementation("org.openjdk.jmh:jmh-core:$jmh_version")
     implementation("com.google.javascript:closure-compiler:$closure_compiler_version")
     implementation("com.googlecode.htmlcompressor:htmlcompressor:$html_compressor_version")
+    implementation("org.slf4j:slf4j-api:$slf4j_version")
+    implementation("org.slf4j:slf4j-simple:$slf4j_version")
     annotationProcessor("org.openjdk.jmh:jmh-generator-annprocess:$jmh_version")
 }
 

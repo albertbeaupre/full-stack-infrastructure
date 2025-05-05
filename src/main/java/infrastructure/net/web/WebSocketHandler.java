@@ -3,10 +3,13 @@ package infrastructure.net.web;
 import infrastructure.collections.queue.LongUUIDQueue;
 import infrastructure.net.web.ui.Component;
 import infrastructure.net.web.ui.Designer;
+import infrastructure.net.web.ui.UI;
 import infrastructure.net.web.ui.ValueComponent;
-import infrastructure.net.web.ui.components.Button;
+import infrastructure.net.web.ui.components.Div;
 import infrastructure.net.web.ui.components.TextField;
-import infrastructure.net.web.ui.components.VerticalLayout;
+import infrastructure.net.web.ui.css.AlignContent;
+import infrastructure.net.web.ui.css.Display;
+import infrastructure.net.web.ui.css.JustifyContent;
 import infrastructure.net.web.ui.event.*;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -16,10 +19,21 @@ import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class WebSocketHandler extends SimpleChannelInboundHandler<WebSocketFrame> {
 
     private final LongUUIDQueue uuidQueue = new LongUUIDQueue();
+
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        super.channelInactive(ctx);
+
+        System.out.println("[WebSocket] Channel closed");
+
+        SessionContext.unregister(ctx.channel());
+    }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, WebSocketFrame frame) throws Exception {
@@ -36,9 +50,9 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<WebSocketFrame
                     SessionContext session = SessionContext.get();
 
                     if (session != null) {
-                        Component component = session.getUI().get(componentID);
+                        UI ui = session.getUI();
+                        Component component = ui.get(componentID);
                         if (component == null) return;
-
 
                         int button = buf.readUnsignedByte();
                         int clientX = buf.readShort();
@@ -49,7 +63,7 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<WebSocketFrame
                         int screenY = buf.readShort();
                         int modifiers = buf.readUnsignedByte();
 
-                        component.publish(new ClickEvent(
+                        ui.publish(new ClickEvent(
                                 MouseButton.fromCode(button),
                                 clientX, clientY,
                                 pageX, pageY,
@@ -64,7 +78,8 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<WebSocketFrame
                     SessionContext session = SessionContext.get();
 
                     if (session != null) {
-                        Component component = session.getUI().get(componentID);
+                        UI ui = session.getUI();
+                        Component component = ui.get(componentID);
                         if (component == null) return;
 
                         boolean repeated = buf.readUnsignedByte() == 1;
@@ -77,10 +92,10 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<WebSocketFrame
 
                         switch (opcode) {
                             case 2:
-                                component.publish(new KeyUpEvent(logicalKey, repeated, modifiers));
+                                ui.publish(new KeyUpEvent(logicalKey, repeated, modifiers));
                                 break;
                             case 3:
-                                component.publish(new KeyDownEvent(logicalKey, repeated, modifiers));
+                                ui.publish(new KeyDownEvent(logicalKey, repeated, modifiers));
                                 break;
                         }
                     }
@@ -90,12 +105,13 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<WebSocketFrame
 
                     SessionContext session = SessionContext.get();
                     if (session == null) return;
+                    UI ui = session.getUI();
 
-                    if (session.getUI().get(componentID) instanceof ValueComponent component) {
+                    if (ui.get(componentID) instanceof ValueComponent component) {
                         int valueLen = buf.readUnsignedShort();
                         byte[] valueBytes = new byte[valueLen];
                         buf.readBytes(valueBytes);
-                        component.publish(new ValueChangeEvent(component, component.getValue(), new String(valueBytes)));
+                        ui.publish(new ValueChangeEvent(component, component.getValue(), new String(valueBytes)));
                     }
                 }
                 case 0 -> {
@@ -108,10 +124,13 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<WebSocketFrame
                     if (session == null) return;
 
                     SessionContext.set(session);
-                    /* TODO session.getUI().access(() -> {
-                        session.getUI().getRouter().navigate(path);
-                        session.getUI().push();
-                    });*/
+                    System.out.println("[WebSocket] Received route: " + path);
+                    session.getUI().access(() -> {
+                        UI ui = session.getUI();
+                        ui.clear();
+
+                        session.getUI().getRouter().handleRoute(path);
+                    });
                 }
 
                 default -> System.err.println("[WebSocket] Unknown binary opcode: " + opcode);
@@ -123,14 +142,11 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<WebSocketFrame
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        if (evt == WebSocketServerProtocolHandler.ServerHandshakeStateEvent.HANDSHAKE_COMPLETE) {
+        if (evt instanceof WebSocketServerProtocolHandler.HandshakeComplete handshake) {
             long sessionID = uuidQueue.pop();
             SessionContext session = new SessionContext(sessionID, ctx.channel());
             SessionContext.register(ctx.channel(), session);
             SessionContext.set(session);
-
-            session.getUI().add(Designer.button("Hey!").component());
-            session.getUI().add(Designer.textField("Hey!").component());
         } else {
             super.userEventTriggered(ctx, evt);
         }

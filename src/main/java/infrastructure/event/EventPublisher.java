@@ -118,18 +118,11 @@ public class EventPublisher {
      */
     private TreeSet<EventListener> createSet(Class<? extends Event> clazz) {
         return new TreeSet<>((listener1, listener2) -> {
-            int compare = getCompare(clazz, listener1, listener2);
+            int compare = Integer.compare(extractPriority(listener1, clazz), extractPriority(listener2, clazz));
             if (compare == 0)
                 return Integer.compare(System.identityHashCode(listener1), System.identityHashCode(listener2));
             return compare;
         });
-    }
-
-    private static int getCompare(Class<? extends Event> clazz, EventListener listener1, EventListener listener2) {
-        int priority1 = extractPriority(listener1, clazz);
-        int priority2 = extractPriority(listener2, clazz);
-
-        return Integer.compare(priority2, priority1);
     }
 
     private static int extractPriority(EventListener listener, Class<? extends Event> clazz) {

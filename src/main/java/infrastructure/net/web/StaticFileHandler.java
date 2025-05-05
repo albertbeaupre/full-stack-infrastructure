@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * to {@link #DEFAULT_FILE} when no matching resource is found, and responds with
  * the appropriate MIME type determined by {@link WebFileType}.
  * <p>
- * Threadsafety:
+ * Thread safety:
  * <ul>
  *   <li>{@link #CONTENT_CACHE} is a shared mutable map; concurrent access may require
  *       external synchronization or replacement with a concurrent map in high-throughput scenarios.</li>

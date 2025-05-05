@@ -72,10 +72,7 @@ public class TextField extends ValueComponent {
         this.placeholder = text;
         this.queueForDispatch(
                 DOMUpdateType.SET_ATTRIBUTE,
-                Map.of(
-                        DOMUpdateParam.KEY, "placeholder",
-                        DOMUpdateParam.VALUE, text
-                )
+                Map.of(DOMUpdateParam.KEY, "placeholder", DOMUpdateParam.VALUE, text)
         );
         this.push();
     }
@@ -99,10 +96,7 @@ public class TextField extends ValueComponent {
     @Override
     protected void create() {
         super.create();
-        this.queueForDispatch(
-                DOMUpdateType.SET_TYPE,
-                Map.of(DOMUpdateParam.TYPE, "text")
-        );
+        this.queueForDispatch(DOMUpdateType.SET_TYPE, Map.of(DOMUpdateParam.TYPE, "text"));
     }
 
     /**
@@ -127,6 +121,9 @@ public class TextField extends ValueComponent {
     @Override
     public void setValue(String value) {
         this.value = value;
+
+        this.queueForDispatch(DOMUpdateType.SET_VALUE, DOMUpdateParam.VALUE, value);
+        this.push();
     }
 
     /**

@@ -28,6 +28,12 @@ public class DOMDispatcher {
         return this;
     }
 
+    public DOMDispatcher queue(DOMDispatcher dispatcher) {
+        updateQueue.addAll(dispatcher.updateQueue);
+        dispatcher.updateQueue.clear();
+        return this;
+    }
+
     /**
      * Flushes the update queue to a single client channel over WebSocket.
      *

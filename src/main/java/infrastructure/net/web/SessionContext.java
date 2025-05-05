@@ -32,28 +32,43 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SessionContext {
 
     /**
-     * Thread-local holder for the session associated with the current thread.
-     * <p>
-     * Used by {@link UI#access()} and related mechanisms to route DOM updates
-     * to the correct session without passing context explicitly.
+     * A {@code ThreadLocal} instance that maintains the current session context
+     * associated with the executing thread. This thread-local reference allows
+     * threads to have an isolated view of the {@link SessionContext}, ensuring that
+     * operations dependent on a session are correctly scoped to the thread executing them.
      */
     private static final ThreadLocal<SessionContext> CURRENT = new ThreadLocal<>();
 
     /**
-     * Global registry of all active sessions keyed by their Netty Channel.
+     * A static collection of active WebSocket sessions mapped by their associated Netty channels.
      * <p>
-     * Allows lookup of the {@code SessionContext} when messages arrive
-     * on a channel. Uses {@link ConcurrentHashMap} for thread-safe access.
+     * This map is used to manage and track active user sessions within the
+     * application, associating a {@link SessionContext} to each connected {@link Channel}.
+     * It facilitates operations such as session retrieval, registration, and
+     * unregistration, ensuring thread-safe access and modification through its
+     * underlying {@link ConcurrentHashMap} implementation.
+     * <p>
+     * Key operations include:
+     * - Associating channels with session contexts ({@link SessionContext#register}).
+     * - Removing sessions when channels disconnect ({@link SessionContext#unregister}).
+     * - Retrieving sessions for specific channels ({@link SessionContext#get(Channel)}).
+     * - Providing a view of all
      */
     private static final Map<Channel, SessionContext> SESSIONS = new ConcurrentHashMap<>();
 
-    /** Unique identifier for this session. */
+    /**
+     * Unique identifier for this session.
+     */
     private final long sessionID;
 
-    /** Netty channel over which to send BinaryWebSocketFrames for this session. */
+    /**
+     * Netty channel over which to send BinaryWebSocketFrames for this session.
+     */
     private final Channel channel;
 
-    /** UI instance representing server-driven UI components for this session. */
+    /**
+     * UI instance representing server-driven UI components for this session.
+     */
     private final UI ui;
 
     /**
@@ -74,7 +89,7 @@ public class SessionContext {
     /**
      * Registers a new session for the given channel.
      * <p>
-     * Subsequent calls to {@link #get(Channel)} will return this session.
+     * Later calls to {@link #get(Channel)} will return this session.
      *
      * @param channel the Netty channel to associate
      * @param session the session context to register
@@ -120,7 +135,7 @@ public class SessionContext {
     /**
      * Sets the thread-local current session context.
      * <p>
-     * Used internally by UI framework when routing callbacks.
+     * Used internally by a UI framework when routing callbacks.
      *
      * @param session the session context to bind to the current thread
      */

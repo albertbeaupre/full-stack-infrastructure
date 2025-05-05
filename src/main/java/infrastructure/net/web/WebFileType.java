@@ -3,6 +3,7 @@ package infrastructure.net.web;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.google.javascript.jscomp.*;
+import com.google.javascript.jscomp.jarjar.com.google.common.collect.ImmutableList;
 import com.googlecode.htmlcompressor.compressor.HtmlCompressor;
 import com.helger.css.ECSSVersion;
 import com.helger.css.decl.CascadingStyleSheet;
@@ -12,6 +13,7 @@ import com.helger.css.writer.CSSWriter;
 import com.helger.css.writer.CSSWriterSettings;
 import infrastructure.io.Loader;
 
+import javax.annotation.concurrent.Immutable;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -167,9 +169,8 @@ public enum WebFileType {
         CompilerOptions options = new CompilerOptions();
         CompilationLevel.SIMPLE_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
 
-        SourceFile extern = SourceFile.fromCode("externs.js", "");
         SourceFile input = SourceFile.fromCode(path.getFileName().toString(), code);
-        Result result = compiler.compile(extern, input, options);
+        Result result = compiler.compile(ImmutableList.of(), ImmutableList.of(input), options);
         if (result.success) {
             return compiler.toSource().getBytes(StandardCharsets.UTF_8);
         } else {
@@ -184,8 +185,6 @@ public enum WebFileType {
         HtmlCompressor compressor = new HtmlCompressor();
         compressor.setRemoveComments(true);
         compressor.setRemoveMultiSpaces(true);
-        compressor.setRemoveQuotes(true);
-        compressor.setCompressJavaScript(true);
         compressor.setCompressCss(true);
         String html = Files.readString(path);
         try {

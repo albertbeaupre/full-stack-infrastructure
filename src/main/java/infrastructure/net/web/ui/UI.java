@@ -1,6 +1,8 @@
 package infrastructure.net.web.ui;
 
 import infrastructure.collections.queue.IntUUIDQueue;
+import infrastructure.event.Event;
+import infrastructure.event.EventPublisher;
 import infrastructure.net.web.Router;
 import infrastructure.net.web.SessionContext;
 
@@ -48,6 +50,16 @@ public class UI extends Component {
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
     /**
+     * Publishes application-level events to registered listeners.
+     */
+    private final EventPublisher publisher = new EventPublisher();
+
+    /**
+     * Represents the router associated with the UI.
+     */
+    private final Router router = new Router(this);
+
+    /**
      * Constructs the root UI container.
      * <p>
      * Initializes this component as a {@code <div>} element, then reserves
@@ -76,6 +88,15 @@ public class UI extends Component {
                 SessionContext.clear();
             }
         });
+    }
+
+    /**
+     * Publishes a custom application event to all registered listeners.
+     *
+     * @param event the event instance to dispatch
+     */
+    public void publish(Event event) {
+        this.publisher.publish(event);
     }
 
     /**
@@ -120,21 +141,34 @@ public class UI extends Component {
     }
 
     /**
+     * Retrieves the {@link EventPublisher} instance associated with the UI.
+     * The {@code EventPublisher} is responsible for managing the publication
+     * and handling of events within the application.
+     *
+     * @return the {@link EventPublisher} used for event-driven communication in this UI
+     */
+    protected EventPublisher getPublisher() {
+        return publisher;
+    }
+
+    /**
      * No initialization required for the root UI container.
      * <p>
      * Subclasses may override to perform application-level setup,
      * but should call {@code super.create()} if they do.
      */
     @Override
-    protected void create() {}
+    protected void create() {
+    }
 
     /**
      * No cleanup required for the root UI container.
      * <p>
-     * Subclasses may override to free resources when the UI is disposed.
+     * Subclasses may override to free resources when the UI is disposed of.
      */
     @Override
-    protected void destroy() {}
+    protected void destroy() {
+    }
 
     /**
      * Always returns {@code true} to indicate that the root UI is permanently
@@ -145,5 +179,16 @@ public class UI extends Component {
     @Override
     public boolean isAttached() {
         return true;
+    }
+
+    /**
+     * Retrieves the {@link Router} instance associated with this {@code UI}.
+     * The {@code Router} is responsible for managing navigation and route handling
+     * within the application's user interface.
+     *
+     * @return the {@link Router} instance used for registering and handling routes
+     */
+    public Router getRouter() {
+        return router;
     }
 }
