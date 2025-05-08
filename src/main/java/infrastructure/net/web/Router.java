@@ -74,7 +74,6 @@ public class Router {
             route.load(ui);
         } else {
             if (unknownRoute == null) {
-                System.out.println("WTF");
                 byte[] notFoundContent = "404 Not Found".getBytes(StandardCharsets.UTF_8);
 
                 FullHttpResponse response = new DefaultFullHttpResponse(

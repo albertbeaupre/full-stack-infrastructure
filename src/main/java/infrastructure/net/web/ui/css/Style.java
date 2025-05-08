@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -75,12 +76,13 @@ public class Style {
      * Unique identifier for this Style instance, aiding traceability in logs.
      */
     private final String instanceID;
+
     /**
      * List of custom media rules for extensibility (e.g., responsive design).
      */
     private final List<CSSMediaRule> mediaRules = new ArrayList<>();
     /**
-     * EventPublisher used for style changing events
+     * EventPublisher used for style-changing events
      **/
     private final EventPublisher publisher = new EventPublisher();
     /**
@@ -258,8 +260,6 @@ public class Style {
         return this;
     }
 
-    // 2. Alignment Classes
-
     /**
      * Sets the CSS {@code align-items} property using a {@link AlignItems} enum value.
      *
@@ -324,8 +324,6 @@ public class Style {
         return this;
     }
 
-    // 3. Spacing Classes
-
     /**
      * Sets the CSS {@code margin} property with a custom value.
      *
@@ -354,8 +352,6 @@ public class Style {
         return this;
     }
 
-    // 4. Sizing Classes
-
     /**
      * Sets the CSS {@code width} property with a custom value.
      *
@@ -383,8 +379,6 @@ public class Style {
         set("height", value);
         return this;
     }
-
-    // 5. Typography Classes
 
     /**
      * Sets the CSS {@code font-weight} property using a {@link FontWeight} enum value.
@@ -959,7 +953,7 @@ public class Style {
      * @param listener   an event listener for style changes (must be non-null)
      * @param cssContent raw CSS (e.g. ".foo { color: red; }")
      * @return a Style instance pre-populated with selector and declarations from the first rule
-     * @throws NullPointerException     if listener is null
+     * @throws NullPointerException     if the listener is null
      * @throws IllegalArgumentException if cssContent is null/empty, cannot be parsed, or contains no style rules
      */
     public static Style fromString(EventListener<StyleChangeEvent> listener, String cssContent) {
@@ -973,13 +967,10 @@ public class Style {
             throw new IllegalArgumentException("Failed to parse CSS content");  // :contentReference[oaicite:0]{index=0}
 
         for (ICSSTopLevelRule rule : sheet.getAllRules()) {
-            if (rule instanceof CSSStyleRule) {
-                CSSStyleRule cssRule = (CSSStyleRule) rule;
-                // take the first selector
-                String sel = cssRule.getSelectorAtIndex(0).getAsCSSString();
+            if (rule instanceof CSSStyleRule cssRule) {
+                String sel = Objects.requireNonNull(cssRule.getSelectorAtIndex(0)).getAsCSSString();
                 Style style = new Style(listener, sel);
 
-                // copy all declarations
                 for (CSSDeclaration decl : cssRule.getAllDeclarations()) {
                     style.set(decl.getProperty(), decl.getExpression().getAsCSSString());
                 }
@@ -997,8 +988,8 @@ public class Style {
      * @param file     the CSS file to read
      * @return a Style instance pre-populated with selector and declarations from the first rule
      * @throws IOException              if reading the file fails
-     * @throws NullPointerException     if listener is null
-     * @throws IllegalArgumentException if file is null or no style rule is found
+     * @throws NullPointerException     if the listener is null
+     * @throws IllegalArgumentException if the file is null or no style rule is found
      */
     public static Style fromFile(EventListener<StyleChangeEvent> listener, File file) throws IOException {
         if (listener == null)
@@ -1008,5 +999,5 @@ public class Style {
 
         String content = Files.readString(file.toPath());
         return fromString(listener, content);
-     }
+    }
 }

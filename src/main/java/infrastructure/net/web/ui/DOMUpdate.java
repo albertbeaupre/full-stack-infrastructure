@@ -92,7 +92,7 @@ public class DOMUpdate {
      *   <li>For each parameter:</li>
      *   <ul>
      *     <li>1 byte: parameter ID ({@link DOMUpdateParam#getCode()})</li>
-     *     <li>2 bytes: length of UTF-8 byte array (short)</li>
+     *     <li>2 bytes: length of a UTF-8 byte array (short)</li>
      *     <li>N bytes: UTF-8 bytes of the parameter value string</li>
      *   </ul>
      * </ol>
@@ -100,7 +100,7 @@ public class DOMUpdate {
      * @return a freshly allocated {@link ByteBuf} containing the encoded update
      */
     public ByteBuf encode() {
-        ByteBuf buf = Unpooled.buffer();
+        ByteBuf buf = Unpooled.buffer(6 + parameters.size() * 3);
 
         buf.writeByte(type.getCode()); // 1 byte: update type code
         buf.writeInt(componentID); // 4 bytes: target component ID

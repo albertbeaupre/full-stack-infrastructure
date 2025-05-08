@@ -1,15 +1,15 @@
 package infrastructure.net.web;
 
 import infrastructure.collections.queue.LongUUIDQueue;
+import infrastructure.event.EventListener;
 import infrastructure.net.web.ui.Component;
 import infrastructure.net.web.ui.Designer;
 import infrastructure.net.web.ui.UI;
 import infrastructure.net.web.ui.ValueComponent;
+import infrastructure.net.web.ui.components.Button;
 import infrastructure.net.web.ui.components.Div;
 import infrastructure.net.web.ui.components.TextField;
-import infrastructure.net.web.ui.css.AlignContent;
-import infrastructure.net.web.ui.css.Display;
-import infrastructure.net.web.ui.css.JustifyContent;
+import infrastructure.net.web.ui.css.*;
 import infrastructure.net.web.ui.event.*;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -17,6 +17,7 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
+import org.w3c.dom.Text;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
@@ -124,7 +125,6 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<WebSocketFrame
                     if (session == null) return;
 
                     SessionContext.set(session);
-                    System.out.println("[WebSocket] Received route: " + path);
                     session.getUI().access(() -> {
                         UI ui = session.getUI();
                         ui.clear();
@@ -147,6 +147,29 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<WebSocketFrame
             SessionContext session = new SessionContext(sessionID, ctx.channel());
             SessionContext.register(ctx.channel(), session);
             SessionContext.set(session);
+
+            session.getUI().getRouter().route(new Route() {
+                @Override
+                public void load(UI ui) {
+                    System.out.println("[WebSocket] Received route: " + handshake);
+                    Div div = new Div();
+                    Button button = new Button("TEST!");
+                    div.getStyle().flexGrow(FlexGrow.GROW).flexDirection(FlexDirection.COLUMN).alignSelf(AlignSelf.CENTER).width("100%").height("100%").display(Display.FLEX).justifyContent(JustifyContent.CENTER).alignContent(AlignContent.CENTER);
+
+                    TextField field = new TextField();
+
+                    button.addClickListener(event -> field.setValue("" + System.currentTimeMillis()));
+
+                    div.add(button);
+                    div.add(field);
+                    ui.add(div);
+                }
+
+                @Override
+                public String getPath() {
+                    return "/";
+                }
+            });
         } else {
             super.userEventTriggered(ctx, evt);
         }

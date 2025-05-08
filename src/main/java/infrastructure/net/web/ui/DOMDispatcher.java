@@ -1,6 +1,7 @@
 package infrastructure.net.web.ui;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
@@ -42,14 +43,18 @@ public class DOMDispatcher {
     public void flush(Channel channel) {
         if (updateQueue.isEmpty() || channel == null || !channel.isActive()) return;
 
-        ByteBuf packet = Unpooled.buffer();
-        packet.writeByte(1); // opcode for dom updates
-        packet.writeShort(updateQueue.size());
+        ByteBuf header = Unpooled.buffer(3);
+        header.writeByte(1); // opcode for DOM updates
+        header.writeShort(updateQueue.size());
+
+        CompositeByteBuf packet = Unpooled.compositeBuffer();
+        packet.addComponent(true, header); // 'true' to increase writer index
 
         for (DOMUpdate update : updateQueue)
-            packet.writeBytes(update.encode());
+            packet.addComponent(true, update.encode());
 
         channel.writeAndFlush(new BinaryWebSocketFrame(packet));
         updateQueue.clear();
     }
+
 }

@@ -231,15 +231,15 @@ public class DynamicByteBuffer {
     public int readInt() {
         checkRead(4);
         if (byteOrder == ByteOrder.BIG_ENDIAN) {
-            return (buffer[readPosition++] & 0xFF) |
-                    (buffer[readPosition++] & 0xFF) << 8 |
-                    (buffer[readPosition++] & 0xFF) << 16 |
-                    (buffer[readPosition++] & 0xFF) << 24;
-        } else {
-            return (buffer[readPosition++] & 0xFF) << 24 |
-                    (buffer[readPosition++] & 0xFF) << 16 |
-                    (buffer[readPosition++] & 0xFF) << 8 |
+            return ((buffer[readPosition++] & 0xFF) << 24) |
+                    ((buffer[readPosition++] & 0xFF) << 16) |
+                    ((buffer[readPosition++] & 0xFF) << 8) |
                     (buffer[readPosition++] & 0xFF);
+        } else {
+            return (buffer[readPosition++] & 0xFF) |
+                    ((buffer[readPosition++] & 0xFF) << 8) |
+                    ((buffer[readPosition++] & 0xFF) << 16) |
+                    ((buffer[readPosition++] & 0xFF) << 24);
         }
     }
 
@@ -255,15 +255,15 @@ public class DynamicByteBuffer {
     public DynamicByteBuffer writeInt(int value) {
         checkWrite(4);
         if (byteOrder == ByteOrder.BIG_ENDIAN) {
-            buffer[writePosition++] = (byte) value;
-            buffer[writePosition++] = (byte) (value >>> 8);
-            buffer[writePosition++] = (byte) (value >>> 16);
             buffer[writePosition++] = (byte) (value >>> 24);
+            buffer[writePosition++] = (byte) (value >>> 16);
+            buffer[writePosition++] = (byte) (value >>> 8);
+            buffer[writePosition++] = (byte) value;
         } else {
-            buffer[writePosition++] = (byte) (value >>> 24);
-            buffer[writePosition++] = (byte) (value >>> 16);
-            buffer[writePosition++] = (byte) (value >>> 8);
             buffer[writePosition++] = (byte) value;
+            buffer[writePosition++] = (byte) (value >>> 8);
+            buffer[writePosition++] = (byte) (value >>> 16);
+            buffer[writePosition++] = (byte) (value >>> 24);
         }
         return this;
     }
@@ -277,23 +277,23 @@ public class DynamicByteBuffer {
     public long readLong() {
         checkRead(8);
         if (byteOrder == ByteOrder.BIG_ENDIAN) {
-            return ((long) (buffer[readPosition++] & 0xFF)) |
-                    ((long) (buffer[readPosition++] & 0xFF) << 8) |
-                    ((long) (buffer[readPosition++] & 0xFF) << 16) |
-                    ((long) (buffer[readPosition++] & 0xFF) << 24) |
-                    ((long) (buffer[readPosition++] & 0xFF) << 32) |
-                    ((long) (buffer[readPosition++] & 0xFF) << 40) |
-                    ((long) (buffer[readPosition++] & 0xFF) << 48) |
-                    ((long) (buffer[readPosition++] & 0xFF) << 56);
+            return ((long)(buffer[readPosition++] & 0xFF) << 56) |
+                    ((long)(buffer[readPosition++] & 0xFF) << 48) |
+                    ((long)(buffer[readPosition++] & 0xFF) << 40) |
+                    ((long)(buffer[readPosition++] & 0xFF) << 32) |
+                    ((long)(buffer[readPosition++] & 0xFF) << 24) |
+                    ((long)(buffer[readPosition++] & 0xFF) << 16) |
+                    ((long)(buffer[readPosition++] & 0xFF) << 8) |
+                    ((long)(buffer[readPosition++] & 0xFF));
         } else {
-            return ((long) (buffer[readPosition++] & 0xFF) << 56) |
-                    ((long) (buffer[readPosition++] & 0xFF) << 48) |
-                    ((long) (buffer[readPosition++] & 0xFF) << 40) |
-                    ((long) (buffer[readPosition++] & 0xFF) << 32) |
-                    ((long) (buffer[readPosition++] & 0xFF) << 24) |
-                    ((long) (buffer[readPosition++] & 0xFF) << 16) |
-                    ((long) (buffer[readPosition++] & 0xFF) << 8) |
-                    ((long) (buffer[readPosition++] & 0xFF));
+            return ((long)(buffer[readPosition++] & 0xFF)) |
+                    ((long)(buffer[readPosition++] & 0xFF) << 8) |
+                    ((long)(buffer[readPosition++] & 0xFF) << 16) |
+                    ((long)(buffer[readPosition++] & 0xFF) << 24) |
+                    ((long)(buffer[readPosition++] & 0xFF) << 32) |
+                    ((long)(buffer[readPosition++] & 0xFF) << 40) |
+                    ((long)(buffer[readPosition++] & 0xFF) << 48) |
+                    ((long)(buffer[readPosition++] & 0xFF) << 56);
         }
     }
 
@@ -309,23 +309,23 @@ public class DynamicByteBuffer {
     public DynamicByteBuffer writeLong(long value) {
         checkWrite(8);
         if (byteOrder == ByteOrder.BIG_ENDIAN) {
-            buffer[writePosition++] = (byte) value;
-            buffer[writePosition++] = (byte) (value >>> 8);
-            buffer[writePosition++] = (byte) (value >>> 16);
-            buffer[writePosition++] = (byte) (value >>> 24);
-            buffer[writePosition++] = (byte) (value >>> 32);
-            buffer[writePosition++] = (byte) (value >>> 40);
-            buffer[writePosition++] = (byte) (value >>> 48);
             buffer[writePosition++] = (byte) (value >>> 56);
+            buffer[writePosition++] = (byte) (value >>> 48);
+            buffer[writePosition++] = (byte) (value >>> 40);
+            buffer[writePosition++] = (byte) (value >>> 32);
+            buffer[writePosition++] = (byte) (value >>> 24);
+            buffer[writePosition++] = (byte) (value >>> 16);
+            buffer[writePosition++] = (byte) (value >>> 8);
+            buffer[writePosition++] = (byte) value;
         } else {
-            buffer[writePosition++] = (byte) (value >>> 56);
-            buffer[writePosition++] = (byte) (value >>> 48);
-            buffer[writePosition++] = (byte) (value >>> 40);
-            buffer[writePosition++] = (byte) (value >>> 32);
-            buffer[writePosition++] = (byte) (value >>> 24);
-            buffer[writePosition++] = (byte) (value >>> 16);
-            buffer[writePosition++] = (byte) (value >>> 8);
             buffer[writePosition++] = (byte) value;
+            buffer[writePosition++] = (byte) (value >>> 8);
+            buffer[writePosition++] = (byte) (value >>> 16);
+            buffer[writePosition++] = (byte) (value >>> 24);
+            buffer[writePosition++] = (byte) (value >>> 32);
+            buffer[writePosition++] = (byte) (value >>> 40);
+            buffer[writePosition++] = (byte) (value >>> 48);
+            buffer[writePosition++] = (byte) (value >>> 56);
         }
         return this;
     }
@@ -414,7 +414,7 @@ public class DynamicByteBuffer {
      * </p>
      *
      * @return the string read from the buffer
-     * @throws BufferUnderflowException if there are insufficient bytes to read the length or the string data
+     * @throws BufferUnderflowException if there are not enough bytes to read the length or the string data
      * @throws IllegalArgumentException if the length is negative
      */
     public String readString() {
@@ -532,7 +532,7 @@ public class DynamicByteBuffer {
     /**
      * Writes a single bit to the buffer and advances the bit position.
      * <p>
-     * Bits are accumulated in the bit write buffer in most-significant-bit-first order. When 8 bits are accumulated, they
+     * Bits are accumulated in the bit write buffer in the most-significant-bit-first order. When 8 bits are accumulated, they
      * are written as a byte to the buffer, and the bit buffer is cleared. If the buffer is too small, it is dynamically
      * resized to accommodate the write operation.
      * </p>
@@ -817,11 +817,11 @@ public class DynamicByteBuffer {
      */
     public enum ByteOrder {
         /**
-         * Big-endian order (most significant byte first).
+         * Big-endian order (the most significant byte first).
          */
         BIG_ENDIAN,
         /**
-         * Little-endian order (least significant byte first).
+         * Little-endian order (the least significant byte first).
          */
         LITTLE_ENDIAN
     }

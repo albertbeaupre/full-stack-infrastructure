@@ -1,5 +1,6 @@
 package infrastructure.net.web;
 
+import infrastructure.net.PacketHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -12,10 +13,13 @@ import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 
-public class NettyWebServer {
+import java.util.concurrent.ConcurrentHashMap;
 
-    public static void main(String[] args) throws Exception {
-        int port = 8080;
+public class WebServer {
+
+    private static final ConcurrentHashMap<Integer, PacketHandler> HANDLERS = new ConcurrentHashMap<>();
+
+    public static void start(int port) throws Exception {
         EventLoopGroup bossGroup = new NioEventLoopGroup();
         EventLoopGroup workerGroup = new NioEventLoopGroup();
 
@@ -28,7 +32,7 @@ public class NettyWebServer {
                         protected void initChannel(SocketChannel ch) {
                             ch.pipeline().addLast(new HttpServerCodec());
                             ch.pipeline().addLast(new HttpObjectAggregator(65536));
-                            ch.pipeline().addLast(new HttpContentCompressor()); // 👈 Enables gzip/deflate
+                            ch.pipeline().addLast(new HttpContentCompressor()); // Enables gzip/deflate
                             ch.pipeline().addLast(new WebSocketServerProtocolHandler("/ws"));
                             ch.pipeline().addLast(new WebSocketHandler());
                             ch.pipeline().addLast(new StaticFileHandler());
@@ -41,5 +45,9 @@ public class NettyWebServer {
             bossGroup.shutdownGracefully();
             workerGroup.shutdownGracefully();
         }
+    }
+
+    public static void main(String[] args) throws Exception {
+        WebServer.start(8080);
     }
 }

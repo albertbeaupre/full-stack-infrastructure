@@ -94,7 +94,7 @@ public class Button extends Component {
      * <p>
      * Provides a place for cleanup logic (e.g., unregistering listeners
      * or freeing resources). No cleanup is required for a basic button.
-     * Subclasses may override if needed.
+     * Subclasses may be overridden if needed.
      */
     @Override
     protected void destroy() {
