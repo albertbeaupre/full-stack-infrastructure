@@ -1,6 +1,7 @@
 package infrastructure.net.web.ui.event;
 
 import infrastructure.event.Event;
+import infrastructure.net.web.ui.Key;
 
 /**
  * Represents a keyboard event sent from the client-side.

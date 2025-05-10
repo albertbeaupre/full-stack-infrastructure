@@ -4,7 +4,7 @@
 
     const RECEIVE_NAVIGATE = 0, RECEIVE_DOM_UPDATE = 1;
 
-    const SET_TEXT = 1, SET_HTML = 2, SET_ATTRIBUTE = 3, SET_PROPERTY = 4, SET_CLASS = 5,
+    const SET_TITLE = 0, SET_TEXT = 1, SET_HTML = 2, SET_ATTRIBUTE = 3, SET_PROPERTY = 4, SET_CLASS = 5,
         SET_STYLE = 6, SET_VALUE = 7, APPEND_CHILD = 8, REMOVE = 9,
         INSERT_BEFORE = 10, INSERT_AFTER = 11, REPLACE = 12, CLEAR_CHILDREN = 13,
         ADD_EVENT = 14, REMOVE_EVENT = 15, TRIGGER_EVENT = 16, TOGGLE_CLASS = 17,
@@ -124,6 +124,9 @@
         if (!element) return;
 
         switch (type) {
+            case SET_TITLE:
+                document.title = params[TEXT];
+                break;
             case SET_TEXT:
                 element.textContent = params[TEXT];
                 break;

@@ -1,6 +1,7 @@
 package infrastructure.net.web.ui.event;
 
 import infrastructure.event.Event;
+import infrastructure.net.web.ui.MouseButton;
 
 /**
  * Represents a mouse click event originating from a client-side interface.

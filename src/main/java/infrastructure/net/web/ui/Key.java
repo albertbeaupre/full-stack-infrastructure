@@ -1,4 +1,4 @@
-package infrastructure.net.web.ui.event;
+package infrastructure.net.web.ui;
 
 /**
  * The {@code JSKey} enum defines a comprehensive set of string constants
@@ -13,7 +13,7 @@ package infrastructure.net.web.ui.event;
  * the browser when a specific key is pressed. For example, pressing the "a" key
  * returns {@code "a"}, and pressing the left arrow key returns {@code "ArrowLeft"}.
  *
- * <p>Use the {@link #fromKey(String)} method to convert a raw key string from
+ * <p>Use the {@link #fromName(String)} method to convert a raw key string from
  * JavaScript into a corresponding enum constant, and {@link #getKey()} to get
  * the string form of an enum constant.
  *
@@ -105,7 +105,7 @@ public enum Key {
      * @param key the raw {@code event.key} string
      * @return the matching {@code JSKey} constant, or {@code null} if none found
      */
-    public static Key fromKey(String key) {
+    public static Key fromName(String key) {
         for (Key jsKey : values()) {
             if (jsKey.key.equals(key)) {
                 return jsKey;

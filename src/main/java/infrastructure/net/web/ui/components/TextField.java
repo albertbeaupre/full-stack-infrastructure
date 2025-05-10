@@ -18,18 +18,13 @@ import java.util.Map;
  * </ul>
  * <p>
  * Subclasses may override lifecycle methods to add additional behavior,
- * but the basic text‐input functionality is provided here.
+ * but the basic text-input functionality is provided here.
  *
  * @author Albert
  * @version 1.0
  * @since May 2, 2025
  */
-public class TextField extends ValueComponent {
-
-    /**
-     * Holds the current text content of this field.
-     */
-    private String value;
+public class TextField extends ValueComponent<String> {
 
     /**
      * Placeholder text displayed when the input is empty.
@@ -60,6 +55,32 @@ public class TextField extends ValueComponent {
     }
 
     /**
+     * Converts the raw string from the DOM into the component’s typed value.
+     * <p>
+     * For a text field, this is a no-op: the raw string is returned directly.
+     *
+     * @param value the raw input string from the DOM
+     * @return the parsed value of type {@code String}
+     */
+    @Override
+    public String deconstruct(String value) {
+        return value;
+    }
+
+    /**
+     * Converts the component’s typed value into a string suitable for the DOM.
+     * <p>
+     * For a text field, this is a no-op: the value string is returned directly.
+     *
+     * @param value the typed value to render
+     * @return the string to set in the DOM input element
+     */
+    @Override
+    public String construct(String value) {
+        return value;
+    }
+
+    /**
      * Updates the placeholder attribute of the underlying input element.
      * <p>
      * Queues a {@link DOMUpdateType#SET_ATTRIBUTE} update to set the
@@ -72,7 +93,10 @@ public class TextField extends ValueComponent {
         this.placeholder = text;
         this.queueForDispatch(
                 DOMUpdateType.SET_ATTRIBUTE,
-                Map.of(DOMUpdateParam.KEY, "placeholder", DOMUpdateParam.VALUE, text)
+                Map.of(
+                        DOMUpdateParam.KEY, "placeholder",
+                        DOMUpdateParam.VALUE, text
+                )
         );
         this.push();
     }
@@ -96,7 +120,10 @@ public class TextField extends ValueComponent {
     @Override
     protected void create() {
         super.create();
-        this.queueForDispatch(DOMUpdateType.SET_TYPE, Map.of(DOMUpdateParam.TYPE, "text"));
+        this.queueForDispatch(
+                DOMUpdateType.SET_TYPE,
+                Map.of(DOMUpdateParam.TYPE, "text")
+        );
     }
 
     /**
@@ -108,31 +135,5 @@ public class TextField extends ValueComponent {
     @Override
     protected void destroy() {
         // No resources to clean up for TextField
-    }
-
-    /**
-     * Updates the internal text value of this component.
-     * <p>
-     * This method is called both by application code and automatically
-     * in response to user input events.
-     *
-     * @param value the new text to store in this field
-     */
-    @Override
-    public void setValue(String value) {
-        this.value = value;
-
-        this.queueForDispatch(DOMUpdateType.SET_VALUE, DOMUpdateParam.VALUE, value);
-        this.push();
-    }
-
-    /**
-     * Retrieves the current text stored in this field.
-     *
-     * @return the field's current text value, or {@code null} if never set
-     */
-    @Override
-    public String getValue() {
-        return value;
     }
 }

@@ -1,9 +1,9 @@
 package infrastructure.net.web;
 
 import infrastructure.net.web.ui.UI;
+import infrastructure.net.web.ui.components.H1;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.handler.codec.http.*;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -18,11 +18,6 @@ import java.util.Map;
  * @author Albert Beaupre
  */
 public class Router {
-
-    /**
-     * Represents the root container for all user interface (UI) components within a session.
-     */
-    private final UI ui;
 
     /**
      * A mapping of route paths to their corresponding route definitions.
@@ -41,25 +36,13 @@ public class Router {
     private Route unknownRoute;
 
     /**
-     * Constructs a new {@code Router} instance associated with the specified {@link UI}.
-     * The {@code Router} is responsible for managing navigation and route handling
-     * within the application's user interface.
-     *
-     * @param ui the {@link UI} instance to associate with this router. Represents the
-     *           root container for all UI components within the session.
-     */
-    public Router(UI ui) {
-        this.ui = ui;
-    }
-
-    /**
      * Registers a route by associating its path with the route definition.
      * Allows the router to resolve and handle navigation requests based on the path.
      *
      * @param route The route to be registered, containing the path and associated logic.
      *              The path must be unique within the router and determines the route's destination.
      */
-    public void route(Route route) {
+    public void addRoute(Route route) {
         routes.put(route.getPath(), route);
     }
 
@@ -68,27 +51,14 @@ public class Router {
      *
      * @param path The requested route (e.g. "/")
      */
-    public void handleRoute(String path) {
-        Route route = this.routes.get(path);
-        if (route != null) {
-            route.load(ui);
-        } else {
-            if (unknownRoute == null) {
-                byte[] notFoundContent = "404 Not Found".getBytes(StandardCharsets.UTF_8);
-
-                FullHttpResponse response = new DefaultFullHttpResponse(
-                        HttpVersion.HTTP_1_1,
-                        HttpResponseStatus.NOT_FOUND,
-                        Unpooled.wrappedBuffer(notFoundContent)
-                );
-                response.headers().set(HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=UTF-8");
-                response.headers().set(HttpHeaderNames.CONTENT_LENGTH, notFoundContent.length);
-
-                SessionContext.get().getChannel().writeAndFlush(response);
-                return;
-            }
-            unknownRoute.load(ui);
+    public void handleRoute(String path, UI ui) {
+        Route route = this.routes.getOrDefault(path, unknownRoute);
+        if (route == null) {
+            ui.add(new H1("404 Unknown Route: " + path));
+            return;
         }
+
+        route.load(ui);
     }
 
     /**
@@ -100,10 +70,11 @@ public class Router {
      *             Cannot be null; if null, the method returns without action.
      */
     protected void navigate(String path) {
-        if (ui == null || path == null) return;
+        if (path == null)
+            return;
 
         byte[] encoded = path.getBytes(StandardCharsets.UTF_8);
-        ByteBuf buf = Unpooled.buffer(3 + encoded.length);
+        ByteBuf buf = Unpooled.directBuffer(3 + encoded.length);
 
         buf.writeByte(0x03);
         buf.writeShort(encoded.length);

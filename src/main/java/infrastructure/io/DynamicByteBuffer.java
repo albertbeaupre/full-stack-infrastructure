@@ -202,6 +202,95 @@ public class DynamicByteBuffer {
     }
 
     /**
+     * Reads a 16-bit unsigned short integer (2 bytes) from the buffer in the configured byte order and advances the read position.
+     *
+     * @return the unsigned short integer read from the buffer as an int
+     * @throws BufferUnderflowException if there are fewer than 2 bytes remaining in the buffer
+     */
+    public int readUnsignedShort() {
+        checkRead(2);
+        if (byteOrder == ByteOrder.BIG_ENDIAN) {
+            return ((buffer[readPosition++] & 0xFF) << 8) | (buffer[readPosition++] & 0xFF);
+        } else {
+            return (buffer[readPosition++] & 0xFF) | ((buffer[readPosition++] & 0xFF) << 8);
+        }
+    }
+
+    /**
+     * Writes a 16-bit unsigned short integer (2 bytes) to the buffer in the configured byte order and advances the write position.
+     * <p>
+     * If the buffer is too small, it is dynamically resized to accommodate the write operation.
+     * </p>
+     *
+     * @param value the unsigned short integer to write (0 to 65535)
+     * @return this buffer, for method chaining
+     * @throws IllegalArgumentException if {@code value} is negative or greater than 65535
+     */
+    public DynamicByteBuffer writeUnsignedShort(int value) {
+        if (value < 0 || value > 0xFFFF) {
+            throw new IllegalArgumentException("Unsigned short value must be between 0 and 65535");
+        }
+        checkWrite(2);
+        if (byteOrder == ByteOrder.BIG_ENDIAN) {
+            buffer[writePosition++] = (byte) (value >>> 8);
+            buffer[writePosition++] = (byte) value;
+        } else {
+            buffer[writePosition++] = (byte) value;
+            buffer[writePosition++] = (byte) (value >>> 8);
+        }
+        return this;
+    }
+
+    /**
+     * Reads a 32-bit unsigned integer (4 bytes) from the buffer in the configured byte order and advances the read position.
+     *
+     * @return the unsigned integer read from the buffer as a long
+     * @throws BufferUnderflowException if there are fewer than 4 bytes remaining in the buffer
+     */
+    public long readUnsignedInt() {
+        checkRead(4);
+        if (byteOrder == ByteOrder.BIG_ENDIAN) {
+            return ((long)(buffer[readPosition++] & 0xFF) << 24) |
+                    ((buffer[readPosition++] & 0xFF) << 16) |
+                    ((buffer[readPosition++] & 0xFF) << 8) |
+                    (buffer[readPosition++] & 0xFF);
+        } else {
+            return (buffer[readPosition++] & 0xFF) |
+                    ((buffer[readPosition++] & 0xFF) << 8) |
+                    ((buffer[readPosition++] & 0xFF) << 16) |
+                    ((long)(buffer[readPosition++] & 0xFF) << 24);
+        }
+    }
+
+    /**
+     * Writes a 32-bit unsigned integer (4 bytes) to the buffer in the configured byte order and advances the write position.
+     * <p>
+     * If the buffer is too small, it is dynamically resized to accommodate the write operation.
+     * </p>
+     *
+     * @param value the unsigned integer to write (0 to 4294967295)
+     * @return this buffer, for method chaining
+     * @throws IllegalArgumentException if {@code value} is negative or greater than 4294967295
+     */
+    public DynamicByteBuffer writeUnsignedInt(long value) {
+        if (value < 0 || value > 0xFFFFFFFFL)
+            throw new IllegalArgumentException("Unsigned int value must be between 0 and 4294967295");
+        checkWrite(4);
+        if (byteOrder == ByteOrder.BIG_ENDIAN) {
+            buffer[writePosition++] = (byte) (value >>> 24);
+            buffer[writePosition++] = (byte) (value >>> 16);
+            buffer[writePosition++] = (byte) (value >>> 8);
+            buffer[writePosition++] = (byte) value;
+        } else {
+            buffer[writePosition++] = (byte) value;
+            buffer[writePosition++] = (byte) (value >>> 8);
+            buffer[writePosition++] = (byte) (value >>> 16);
+            buffer[writePosition++] = (byte) (value >>> 24);
+        }
+        return this;
+    }
+
+    /**
      * Writes a 16-bit short integer (2 bytes) to the buffer in the configured byte order and advances the write position.
      * <p>
      * If the buffer is too small, it is dynamically resized to accommodate the write operation.
@@ -418,10 +507,9 @@ public class DynamicByteBuffer {
      * @throws IllegalArgumentException if the length is negative
      */
     public String readString() {
-        int length = readInt();
-        if (length < 0) {
+        int length = readShort();
+        if (length < 0)
             throw new BufferUnderflowException();
-        }
         checkRead(length);
         byte[] bytes = new byte[length];
         System.arraycopy(buffer, readPosition, bytes, 0, length);
@@ -446,7 +534,7 @@ public class DynamicByteBuffer {
 
         byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
         checkWrite(4 + bytes.length);
-        writeInt(bytes.length);
+        writeShort((short) bytes.length);
         for (byte b : bytes) {
             buffer[writePosition++] = b;
         }

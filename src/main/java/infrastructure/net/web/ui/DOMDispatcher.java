@@ -43,7 +43,7 @@ public class DOMDispatcher {
     public void flush(Channel channel) {
         if (updateQueue.isEmpty() || channel == null || !channel.isActive()) return;
 
-        ByteBuf header = Unpooled.buffer(3);
+        ByteBuf header = Unpooled.directBuffer(3);
         header.writeByte(1); // opcode for DOM updates
         header.writeShort(updateQueue.size());
 

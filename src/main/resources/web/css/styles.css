@@ -1,3 +1,233 @@
-body {
+/* Modern, beautiful theme with a clean and vibrant aesthetic */
+:root {
+    --primary-color: #4a90e2;
+    --secondary-color: #50c878;
+    --background-color: #f5f7fa;
+    --surface-color: #ffffff;
+    --text-color: #2d3748;
+    --text-muted: #6b7280;
+    --accent-color: #ff6b6b;
+    --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --border-radius: 8px;
+    --transition: all 0.3s ease;
+}
 
+/* Global reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    font-size: 16px;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-color);
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+h1 { font-size: 2.5rem; }
+h2 { font-size: 2rem; }
+h3 { font-size: 1.75rem; }
+h4 { font-size: 1.5rem; }
+h5 { font-size: 1.25rem; }
+h6 { font-size: 1rem; }
+
+/* Paragraphs and text */
+p {
+    margin-bottom: 1rem;
+    color: var(--text-muted);
+}
+
+a {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+a:hover {
+    color: var(--accent-color);
+    text-decoration: underline;
+}
+
+/* Buttons */
+button, input[type="submit"], input[type="button"] {
+    background-color: var(--primary-color);
+    color: #ffffff;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+button:hover, input[type="submit"]:hover, input[type="button"]:hover {
+    background-color: var(--accent-color);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+}
+
+/* Forms */
+input, textarea, select {
+    background-color: var(--surface-color);
+    border: 1px solid #e2e8f0;
+    border-radius: var(--border-radius);
+    padding: 0.75rem;
+    width: 100%;
+    margin-bottom: 1rem;
+    transition: var(--transition);
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+}
+
+/* Labels */
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+/* Tables */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--surface-color);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+}
+
+th, td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+th {
+    background-color: var(--primary-color);
+    color: #ffffff;
+    font-weight: 600;
+}
+
+tr:nth-child(even) {
+    background-color: #f8fafc;
+}
+
+tr:hover {
+    background-color: #edf2f7;
+}
+
+/* Lists */
+ul, ol {
+    margin: 1rem 0;
+    padding-left: 2rem;
+}
+
+li {
+    margin-bottom: 0.5rem;
+    color: var(--text-muted);
+}
+
+/* Navigation */
+nav {
+    background-color: var(--surface-color);
+    padding: 1rem;
+    box-shadow: var(--shadow);
+    border-radius: var(--border-radius);
+}
+
+nav a {
+    margin-right: 1rem;
+    font-weight: 500;
+}
+
+/* Cards */
+.card {
+    background-color: var(--surface-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    transition: var(--transition);
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Images */
+img {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+}
+
+img:hover {
+    transform: scale(1.02);
+}
+
+/* Blockquotes */
+blockquote {
+    border-left: 4px solid var(--primary-color);
+    padding-left: 1rem;
+    margin: 1rem 0;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Horizontal rule */
+hr {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 2rem 0;
+}
+
+/* Code blocks */
+pre, code {
+    background-color: #2d3748;
+    color: #e2e8f0;
+    border-radius: var(--border-radius);
+    padding: 0.2rem 0.4rem;
+    font-family: 'Fira Code', monospace;
+}
+
+pre {
+    padding: 1rem;
+    overflow-x: auto;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    body {
+        font-size: 14px;
+    }
+
+    h1 { font-size: 2rem; }
+    h2 { font-size: 1.75rem; }
+    h3 { font-size: 1.5rem; }
+
+    button, input, textarea, select {
+        padding: 0.5rem;
+    }
+
+    table, th, td {
+        font-size: 0.9rem;
+        padding: 0.5rem;
+    }
 }

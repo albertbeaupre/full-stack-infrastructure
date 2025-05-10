@@ -46,6 +46,11 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
     private final ArrayList<Component> children = new ArrayList<>();
 
     /**
+     * Responsible for managing the publishing and subscription of events within the component.
+     */
+    private final EventPublisher publisher = new EventPublisher();
+
+    /**
      * Manages CSS styles for this component, identified by its component ID.
      */
     private final Style style;
@@ -187,14 +192,23 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
      * @param name     the DOM event name (e.g., "click", "keydown")
      */
     private <T extends Event> void registerEventListener(Class<T> clazz, EventListener<T> listener, String name) {
-        if (!this.ui.getPublisher().isRegistered(clazz)) {
+        if (!this.publisher.isRegistered(clazz)) {
             this.dispatcher.queue(
                     new DOMUpdate(DOMUpdateType.ADD_EVENT_LISTENER, componentID)
                             .param(DOMUpdateParam.EVENT_NAME, name)
             );
         }
-        this.ui.getPublisher().register(clazz, listener);
+        this.publisher.register(clazz, listener);
         push();
+    }
+
+    /**
+     * Publishes the specified event to all registered listeners for processing.
+     * The event will be propagated to each listener in the order they were registered.
+     * If an event is consumed by a listener,
+     */
+    public void publish(Event event) {
+        this.publisher.publish(event);
     }
 
     /**
@@ -326,4 +340,5 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
     protected int getComponentID() {
         return componentID;
     }
+
 }

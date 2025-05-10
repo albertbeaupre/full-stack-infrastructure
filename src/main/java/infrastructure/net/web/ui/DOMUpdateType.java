@@ -10,8 +10,7 @@ package infrastructure.net.web.ui;
  */
 public enum DOMUpdateType {
 
-    // Creates a DOM element
-    CREATE(0),                // Represents the creation of a DOM element
+    TITLE(0),                // Sets the document title
 
     // Basic content and property updates
     SET_TEXT(1),              // Sets the textContent of an element

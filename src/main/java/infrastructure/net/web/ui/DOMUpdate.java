@@ -100,7 +100,7 @@ public class DOMUpdate {
      * @return a freshly allocated {@link ByteBuf} containing the encoded update
      */
     public ByteBuf encode() {
-        ByteBuf buf = Unpooled.buffer(6 + parameters.size() * 3);
+        ByteBuf buf = Unpooled.directBuffer(6 + parameters.size() * 3);
 
         buf.writeByte(type.getCode()); // 1 byte: update type code
         buf.writeInt(componentID); // 4 bytes: target component ID

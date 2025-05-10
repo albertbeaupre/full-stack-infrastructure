@@ -1,4 +1,4 @@
-package infrastructure.net.web.ui.event;
+package infrastructure.net.web.ui;
 
 /**
  * Represents the mouse button used in a click event.
