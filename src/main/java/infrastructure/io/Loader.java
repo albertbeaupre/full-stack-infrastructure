@@ -5,11 +5,7 @@ import java.nio.file.Path;
 
 /**
  * Functional interface for loading binary data from a file system path.
- * <p>
- * Implementations of this interface encapsulate the logic to read raw bytes
- * from a given {@link Path}, allowing callers to abstract over different
- * loading strategies (e.g., synchronous file reads, in-memory caches,
- * or remote resource fetchers).
+ *
  * <p>
  * This interface is annotated with {@link FunctionalInterface}, enabling
  * usage in lambda expressions and method references for concise loader definitions.

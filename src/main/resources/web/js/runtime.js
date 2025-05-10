@@ -16,6 +16,8 @@
         DATASET_KEY = 11, DATASET_VAL = 12, TOP = 13, LEFT = 14, BEHAVIOR = 15,
         IDENTIFIER = 16, TYPE = 17;
 
+    const BOOLEAN_PROPERTIES = new Set(["checked", "disabled", "selected", "readonly", "required", "autofocus", "multiple"]);
+
     const enc = new TextEncoder(), dec = new TextDecoder(), packets_out = [], packets_in = [];
 
     packets_out[SEND_NAVIGATE] = (path) => {
@@ -137,7 +139,14 @@
                 element.setAttribute(params[KEY], params[VALUE]);
                 break;
             case SET_PROPERTY:
-                element[params[PROPERTY]] = params[VALUE];
+                const prop = params[PROPERTY];
+                const value = params[VALUE];
+
+                if (BOOLEAN_PROPERTIES.has(prop)) {
+                    element[prop] = value === "true";
+                } else {
+                    element[prop] = value;
+                }
                 break;
             case SET_CLASS:
                 element.className = params[CLASS_NAME];
@@ -175,7 +184,11 @@
                     if (evt === "click") sendPacket(SEND_CLICK, cid, e.button, e.clientX, e.clientY, e.pageX, e.pageY, e.screenX, e.screenY, e.ctrlKey, e.shiftKey, e.altKey, e.metaKey);
                     if (evt === "keyup") sendPacket(SEND_KEY_UP, cid, e.key, e.repeat, e.ctrlKey, e.shiftKey, e.altKey, e.metaKey);
                     if (evt === "keydown") sendPacket(SEND_KEY_DOWN, cid, e.key, e.repeat, e.ctrlKey, e.shiftKey, e.altKey, e.metaKey);
-                    if (evt === "input") sendPacket(SEND_VALUE_CHANGE, cid, e.target.value);
+                    if (evt === "input") {
+                        const isCheckbox = e.target.type === "checkbox";
+                        const value = isCheckbox ? e.target.checked.toString() : e.target.value;
+                        sendPacket(SEND_VALUE_CHANGE, cid, value);
+                    }
                 });
                 break;
             }

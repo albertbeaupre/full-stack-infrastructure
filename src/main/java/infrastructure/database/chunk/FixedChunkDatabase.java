@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * The {@code ChunkDatabase} class provides a fixed-size, chunk-based key-value storage system
+ * The {@code FixedChunkDatabase} class provides a fixed-size, chunk-based key-value storage system
  * designed for efficient random-access operations on disk. It stores keys and their corresponding
  * data in separate binary files ({@code keys.bin} and {@code data.bin}), with each entry occupying
  * a fixed-size chunk. This implementation ensures thread-safety through key-specific locking and
@@ -43,7 +43,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * <p><b>Usage Example:</b></p>
  * <pre>
  * // Define a concrete implementation with specific serialization strategies
- * ChunkDatabase<String, MyData> db = new ChunkDatabase<>(
+ * FixedChunkDatabase<String, MyData> db = new FixedChunkDatabase<>(
  *     "dbFolder",
  *     new StringByteCodeStrategy(),  // Custom key serialization
  *     new MyDataByteCodeStrategy(), // Custom data serialization
@@ -75,7 +75,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * @version 1.1
  * @since August 31st, 2024
  */
-public class ChunkDatabase<K, D> implements AutoCloseable {
+public class FixedChunkDatabase<K, D> implements AutoCloseable {
 
     /**
      * The filename for storing unused chunk indices.
@@ -156,7 +156,7 @@ public class ChunkDatabase<K, D> implements AutoCloseable {
     private final Path folder;
 
     /**
-     * Constructs a new {@code ChunkDatabase} instance, initializing file pools, storage directories,
+     * Constructs a new {@code FixedChunkDatabase} instance, initializing file pools, storage directories,
      * and loading existing key pointers.
      *
      * <p>The constructor creates the storage directory if it does not exist and initializes the
@@ -172,7 +172,7 @@ public class ChunkDatabase<K, D> implements AutoCloseable {
      * @param chunkAllocation The number of chunks to pre-allocate if the database is new.
      * @throws RuntimeException If the storage directory cannot be created or if file operations fail.
      */
-    public ChunkDatabase(String folder, ByteCodeStrategy<K> keyStrategy, ByteCodeStrategy<D> dataStrategy, int keyChunkSize, int dataChunkSize, int chunkAllocation) {
+    public FixedChunkDatabase(String folder, ByteCodeStrategy<K> keyStrategy, ByteCodeStrategy<D> dataStrategy, int keyChunkSize, int dataChunkSize, int chunkAllocation) {
         this.keyStrategy = keyStrategy;
         this.dataStrategy = dataStrategy;
         this.dataChunkSize = dataChunkSize;
@@ -200,7 +200,7 @@ public class ChunkDatabase<K, D> implements AutoCloseable {
                     this.unusedChunks.push(i - 1);
             }
 
-            // Load unused chunk indices from file
+            // Load unused chunk indices from a file
             if (Files.exists(unusedPath)) {
                 ByteBuffer buffer = ByteBuffer.wrap(Files.readAllBytes(unusedPath));
                 while (buffer.remaining() >= Long.BYTES)
@@ -248,15 +248,12 @@ public class ChunkDatabase<K, D> implements AutoCloseable {
      * @throws IndexOutOfBoundsException If the serialized key or data exceeds the chunk size.
      * @throws NullPointerException      If the key or data is null.
      */
-    public void create(final K key, final D data) {
+    public synchronized void create(final K key, final D data) {
         Objects.requireNonNull(key, "Key cannot be null");
         Objects.requireNonNull(data, "Data cannot be written as null");
 
         if (pointers.containsKey(key))
             throw new RuntimeException("Key already exists: " + key);
-
-        ReentrantLock lock = this.locks.computeIfAbsent(key, _ -> new ReentrantLock());
-        lock.lock();
 
         RAFPoolObject keyObject = this.keyPool.borrow();
         RAFPoolObject dataObject = this.dataPool.borrow();
@@ -301,7 +298,6 @@ public class ChunkDatabase<K, D> implements AutoCloseable {
         } finally {
             this.keyPool.recycle(keyObject);
             this.dataPool.recycle(dataObject);
-            lock.unlock();
         }
     }
 
@@ -365,8 +361,8 @@ public class ChunkDatabase<K, D> implements AutoCloseable {
         ReentrantLock lock = this.locks.computeIfAbsent(key, _ -> new ReentrantLock());
         lock.lock();
 
-        RAFPoolObject keyObject = keyObject = this.keyPool.borrow();
-        RAFPoolObject dataObject = dataObject = this.dataPool.borrow();
+        RAFPoolObject keyObject = this.keyPool.borrow();
+        RAFPoolObject dataObject = this.dataPool.borrow();
         try {
             this.pointers.remove(key);
             this.unusedChunks.push(pointer);
@@ -382,8 +378,8 @@ public class ChunkDatabase<K, D> implements AutoCloseable {
         } catch (IOException e) {
             throw new RuntimeException("Could not delete entry from database: " + e.getMessage(), e);
         } finally {
-            if (keyObject != null) this.keyPool.recycle(keyObject);
-            if (dataObject != null) this.dataPool.recycle(dataObject);
+            this.keyPool.recycle(keyObject);
+            this.dataPool.recycle(dataObject);
             lock.unlock();
             this.locks.remove(key);
         }
@@ -425,7 +421,7 @@ public class ChunkDatabase<K, D> implements AutoCloseable {
      * Closes the database, saving unused chunk indices and releasing resources.
      *
      * <p>Writes the unused chunk indices to the unused file and closes the file pools.
-     * Clears the pointers map to free memory.</p>
+     * Clears the pointer map to free memory.</p>
      *
      * @throws RuntimeException If an I/O error occurs while saving unused chunks.
      */

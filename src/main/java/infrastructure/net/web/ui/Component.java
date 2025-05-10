@@ -204,8 +204,6 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
 
     /**
      * Publishes the specified event to all registered listeners for processing.
-     * The event will be propagated to each listener in the order they were registered.
-     * If an event is consumed by a listener,
      */
     public void publish(Event event) {
         this.publisher.publish(event);

@@ -8,11 +8,7 @@ public class VerticalLayout extends Div {
     protected void create() {
         this.getStyle()
                 .display(Display.FLEX)
-                .flexDirection(FlexDirection.COLUMN);
-    }
-
-    @Override
-    protected void destroy() {
-
+                .flexDirection(FlexDirection.COLUMN)
+                .gap("1em");
     }
 }
