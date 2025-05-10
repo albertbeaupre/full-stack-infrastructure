@@ -27,6 +27,6 @@ public class MousePacketHandler implements PacketHandler {
         int screenY = packet.readShort();
         int modifiers = packet.readUnsignedByte();
 
-        component.publish(new ClickEvent(MouseButton.fromCode(button), clientX, clientY, pageX, pageY, screenX, screenY, modifiers));
+        component.publish(new ClickEvent(component, MouseButton.fromCode(button), clientX, clientY, pageX, pageY, screenX, screenY, modifiers));
     }
 }

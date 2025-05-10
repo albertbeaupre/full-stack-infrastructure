@@ -114,4 +114,7 @@ public abstract class ValueComponent<V> extends Component {
     protected void create() {
         this.addValueChangeListener(e -> setValue(deconstruct(e.getNewValue())));
     }
+
+    @Override
+    protected void destroy() { }
 }

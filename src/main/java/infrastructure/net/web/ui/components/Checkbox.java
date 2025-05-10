@@ -12,7 +12,11 @@ public class Checkbox extends ValueComponent<Boolean> {
 
     public Checkbox() {
         super("input");
+    }
 
+    public Checkbox(boolean checked) {
+        this();
+        this.setChecked(checked);
     }
 
     public void setChecked(boolean checked) {
@@ -20,8 +24,6 @@ public class Checkbox extends ValueComponent<Boolean> {
 
         this.queueForDispatch(DOMUpdateType.SET_PROPERTY, Map.of(DOMUpdateParam.PROPERTY, "checked", DOMUpdateParam.VALUE, String.valueOf(checked)));
         this.push();
-
-        System.out.println("checked: " + checked);
     }
 
     public boolean isChecked() {
@@ -43,8 +45,4 @@ public class Checkbox extends ValueComponent<Boolean> {
         this.queueForDispatch(DOMUpdateType.SET_TYPE, Map.of(DOMUpdateParam.TYPE, "checkbox"));
     }
 
-    @Override
-    protected void destroy() {
-
-    }
 }

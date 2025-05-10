@@ -1,6 +1,7 @@
 package infrastructure.net.web.ui.event;
 
 import infrastructure.event.Event;
+import infrastructure.net.web.ui.Component;
 import infrastructure.net.web.ui.MouseButton;
 
 /**
@@ -45,6 +46,7 @@ public class ClickEvent extends Event {
      */
     private static final int META = 1 << 3;
 
+    private final Component component;
     private final MouseButton button;
     private final int clientCoords;
     private final int pageCoords;
@@ -56,6 +58,7 @@ public class ClickEvent extends Event {
      * All coordinates are signed 16-bit values, packed into a 32-bit integer.
      * Modifier keys are encoded using a bitmask.
      *
+     * @param component     the component that triggered the event
      * @param button        the mouse button pressed
      * @param clientX       the X-coordinate of the click within the viewport (signed 16-bit)
      * @param clientY       the Y-coordinate of the click within the viewport (signed 16-bit)
@@ -65,7 +68,8 @@ public class ClickEvent extends Event {
      * @param screenY       the Y-coordinate of the click relative to the user's screen (signed 16-bit)
      * @param modifierFlags bitmask representing which modifier keys were pressed
      */
-    public ClickEvent(MouseButton button, int clientX, int clientY, int pageX, int pageY, int screenX, int screenY, int modifierFlags) {
+    public ClickEvent(Component component, MouseButton button, int clientX, int clientY, int pageX, int pageY, int screenX, int screenY, int modifierFlags) {
+        this.component = component;
         this.button = button;
         this.clientCoords = packSigned(clientX, clientY);
         this.pageCoords = packSigned(pageX, pageY);
@@ -210,5 +214,14 @@ public class ClickEvent extends Event {
      */
     public boolean isMetaPressed() {
         return (modifierFlags & META) != 0;
+    }
+
+    /**
+     * Returns the component that triggered the click event.
+     *
+     * @return the component associated with this click event
+     */
+    public Component getComponent() {
+        return component;
     }
 }

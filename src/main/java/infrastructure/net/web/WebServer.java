@@ -1,12 +1,9 @@
 package infrastructure.net.web;
 
-import infrastructure.event.EventListener;
 import infrastructure.net.PacketHandler;
+import infrastructure.net.web.ui.Designer;
 import infrastructure.net.web.ui.UI;
-import infrastructure.net.web.ui.components.Button;
-import infrastructure.net.web.ui.components.Checkbox;
-import infrastructure.net.web.ui.event.ClickEvent;
-import infrastructure.net.web.ui.event.KeyDownEvent;
+import infrastructure.net.web.ui.css.*;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -143,25 +140,49 @@ public final class WebServer implements Runnable {
      * @throws Exception if server startup fails
      */
     public static void main(String[] args) throws Exception {
-        WebServer.start(8080, true);
+        WebServer.start(4040, true);
 
         WebServer.getRouter().addRoute(new Route() {
             @Override
             public void load(UI ui) {
-                ui.getStyle().width("100vw").height("100vh").backgroundColor("green");
-                Checkbox checkbox = new Checkbox();
-                Button button = new Button("Click Me");
-                button.addClickListener(event -> {
-                    System.out.println("KALSDMLKASMDLKASMLDKMA");
-                    checkbox.setChecked(!checkbox.isChecked());
-                });
+                Designer.begin(ui)
 
-                checkbox.addValueChangeListener(e -> {
-                    System.out.println(e.getNewValue());
-                });
-                ui.add(button);
-                ui.add(checkbox);
+                        .div()
+                        .asParent()
+                        .display(Display.FLEX)
+                        .flex(Flex.AUTO)
+                        .flexDirection(FlexDirection.COLUMN)
+                        .alignItems(AlignItems.CENTER)
+                        .justifyContent(JustifyContent.CENTER)
+                        .alignContent(AlignContent.CENTER)
+                        .gap("1em")
+                        .width("100vw")
+                        .height("100vh")
 
+                        .textField("Username")
+                        .maxWidth("300px")
+                        .minWidth("150px")
+                        .width("50%")
+
+                        .password("Password")
+                        .maxWidth("300px")
+                        .minWidth("150px")
+                        .width("50%")
+                        .margin("0 0 3em 0")
+
+                        .button("Login")
+                        .onClick(e -> {
+                            e.getComponent().getStyle()
+                                    .width("50%")
+                                    .maxWidth("50%")
+                                    .minWidth("25%");
+                        })
+                        .minWidth("80px")
+                        .maxWidth("150px")
+                        .width("25%")
+
+                        .label("Remember me?")
+                        .checkbox();
             }
 
             @Override

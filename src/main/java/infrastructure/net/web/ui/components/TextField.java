@@ -55,6 +55,21 @@ public class TextField extends ValueComponent<String> {
     }
 
     /**
+     * Constructs a new TextField component with the given placeholder text and initial value.
+     * <p>
+     * The placeholder will be applied immediately and displayed in the input
+     * element until the user enters a value. The initial value will also be
+     * set during component initialization.
+     *
+     * @param placeholder the placeholder text to display when the field is empty
+     * @param value       the initial value to populate the TextField
+     */
+    public TextField(String placeholder, String value) {
+        this(placeholder);
+        setValue(value);
+    }
+
+    /**
      * Converts the raw string from the DOM into the component’s typed value.
      * <p>
      * For a text field, this is a no-op: the raw string is returned directly.
@@ -91,13 +106,7 @@ public class TextField extends ValueComponent<String> {
      */
     public void setPlaceholder(String text) {
         this.placeholder = text;
-        this.queueForDispatch(
-                DOMUpdateType.SET_ATTRIBUTE,
-                Map.of(
-                        DOMUpdateParam.KEY, "placeholder",
-                        DOMUpdateParam.VALUE, text
-                )
-        );
+        this.queueForDispatch(DOMUpdateType.SET_ATTRIBUTE, Map.of(DOMUpdateParam.KEY, "placeholder", DOMUpdateParam.VALUE, text));
         this.push();
     }
 
@@ -120,10 +129,7 @@ public class TextField extends ValueComponent<String> {
     @Override
     protected void create() {
         super.create();
-        this.queueForDispatch(
-                DOMUpdateType.SET_TYPE,
-                Map.of(DOMUpdateParam.TYPE, "text")
-        );
+        this.queueForDispatch(DOMUpdateType.SET_TYPE, Map.of(DOMUpdateParam.TYPE, "text"));
     }
 
     /**

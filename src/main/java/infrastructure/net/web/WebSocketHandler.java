@@ -109,7 +109,7 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<BinaryWebSocke
      */
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        if (evt instanceof WebSocketServerProtocolHandler.HandshakeComplete handshake) {
+        if (evt instanceof WebSocketServerProtocolHandler.HandshakeComplete) {
             long sessionID = uuidQueue.pop();
             SessionContext session = new SessionContext(sessionID, ctx.channel());
             SessionContext.register(ctx.channel(), session);
@@ -128,5 +128,6 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<BinaryWebSocke
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         Log.error("Error on channel[{}]: {}", ctx.channel().remoteAddress(), cause.getMessage());
+        cause.printStackTrace();
     }
 }
