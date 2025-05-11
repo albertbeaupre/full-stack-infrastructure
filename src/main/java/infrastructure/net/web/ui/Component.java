@@ -202,6 +202,7 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
         push();
     }
 
+
     /**
      * Publishes the specified event to all registered listeners for processing.
      */

@@ -7,11 +7,19 @@ import infrastructure.net.web.packets.MousePacketHandler;
 import infrastructure.net.web.packets.RoutePacketHandler;
 import infrastructure.net.web.packets.ValueChangePacketHandler;
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.cookie.Cookie;
+import io.netty.handler.codec.http.cookie.DefaultCookie;
+import io.netty.handler.codec.http.cookie.ServerCookieDecoder;
+import io.netty.handler.codec.http.cookie.ServerCookieEncoder;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import org.slf4j.Logger;
+
+import java.util.Set;
 
 /**
  * Handles incoming WebSocket binary frames and routes them to appropriate packet handlers.
@@ -47,14 +55,6 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<BinaryWebSocke
      * A thread-safe queue that generates long-based UUIDs used for session IDs.
      */
     private final LongUUIDQueue uuidQueue = new LongUUIDQueue();
-
-    static {
-        WebServer.registerHandler(0, new RoutePacketHandler());
-        WebServer.registerHandler(1, new MousePacketHandler());
-        WebServer.registerHandler(2, new KeyPacketHandler());
-        WebServer.registerHandler(3, new KeyPacketHandler());
-        WebServer.registerHandler(4, new ValueChangePacketHandler());
-    }
 
     /**
      * Invoked when a client disconnects from the WebSocket.
@@ -110,13 +110,50 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<BinaryWebSocke
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         if (evt instanceof WebSocketServerProtocolHandler.HandshakeComplete) {
+            HttpHeaders headers = ((WebSocketServerProtocolHandler.HandshakeComplete) evt).requestHeaders();
+            String cookieHeader = headers.get(HttpHeaderNames.COOKIE);
+            SessionContext session;
+
+            if (cookieHeader != null) {
+                Set<Cookie> cookies = ServerCookieDecoder.STRICT.decode(cookieHeader);
+                for (Cookie cookie : cookies) {
+                    if (cookie.name().equals("sessionID")) {
+                        try {
+                            long sessionID = Long.parseLong(cookie.value());
+                            session = new SessionContext(sessionID, ctx.channel());
+                            SessionContext.register(ctx.channel(), session);
+                            SessionContext.set(session);
+                            Log.debug("Resumed session: {}", sessionID);
+                            return;
+                        } catch (NumberFormatException e) {
+                            Log.warn("Invalid sessionID in cookie: {}", cookie.value());
+                            break;
+                        }
+                    }
+                }
+            }
+
             long sessionID = uuidQueue.pop();
-            SessionContext session = new SessionContext(sessionID, ctx.channel());
+            session = new SessionContext(sessionID, ctx.channel());
             SessionContext.register(ctx.channel(), session);
             SessionContext.set(session);
+            Log.debug("Created new session: {}", sessionID);
         } else {
             super.userEventTriggered(ctx, evt);
         }
+    }
+
+    private void sendSessionCookie(ChannelHandlerContext ctx, String sessionID) {
+        Cookie cookie = new DefaultCookie("sessionID", sessionID);
+        cookie.setHttpOnly(true);
+        cookie.setPath("/");
+
+        String encoded = ServerCookieEncoder.STRICT.encode(cookie);
+
+        FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+        response.headers().add(HttpHeaderNames.SET_COOKIE, encoded);
+
+        ctx.writeAndFlush(response);
     }
 
     /**

@@ -59,10 +59,9 @@ public class StaticFileHandler extends SimpleChannelInboundHandler<FullHttpReque
      *
      * @param ctx     the Netty channel handler context
      * @param request the inbound HTTP request
-     * @throws Exception on I/O or handler errors
      */
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) throws Exception {
+    protected void channelRead0(ChannelHandlerContext ctx, FullHttpRequest request) {
         Path requestedPath = resolveRequestedPath(request.uri());
         String filename = requestedPath.getFileName().toString();
         WebFileType fileType = WebFileType.fromFilename(filename);

@@ -1,6 +1,7 @@
 package infrastructure.net.web;
 
 import infrastructure.net.PacketHandler;
+import infrastructure.net.web.packets.*;
 import infrastructure.net.web.ui.Designer;
 import infrastructure.net.web.ui.UI;
 import infrastructure.net.web.ui.css.*;
@@ -78,6 +79,15 @@ public final class WebServer implements Runnable {
      */
     private static boolean OPEN_BROWSER = true;
 
+    static {
+        WebServer.registerHandler(0, new RoutePacketHandler());
+        WebServer.registerHandler(1, new MousePacketHandler());
+        WebServer.registerHandler(2, new KeyPacketHandler());
+        WebServer.registerHandler(3, new KeyPacketHandler());
+        WebServer.registerHandler(4, new ValueChangePacketHandler());
+        WebServer.registerHandler(5, new SubmitPacketHandler());
+    }
+
     /**
      * This constructor is private to prevent instantiation of the {@code WebServer}
      * class.
@@ -147,8 +157,7 @@ public final class WebServer implements Runnable {
             public void load(UI ui) {
                 Designer.begin(ui)
 
-                        .div()
-                        .asParent()
+                        .div().asParent()
                         .display(Display.FLEX)
                         .flex(Flex.AUTO)
                         .flexDirection(FlexDirection.COLUMN)
@@ -159,12 +168,19 @@ public final class WebServer implements Runnable {
                         .width("100vw")
                         .height("100vh")
 
+                        .h1("Log Into Messy")
+                        .textAlign(TextAlign.CENTER)
+                        .margin("0 0 1em 0")
+
                         .textField("Username")
                         .maxWidth("300px")
                         .minWidth("150px")
                         .width("50%")
 
                         .password("Password")
+                        .onValueChange(e -> {
+                            System.out.printf("old=%s, new=%s, current=%s\n", e.getOldValue(), e.getNewValue(), e.getComponent().getValue());
+                        })
                         .maxWidth("300px")
                         .minWidth("150px")
                         .width("50%")
@@ -180,9 +196,26 @@ public final class WebServer implements Runnable {
                         .minWidth("80px")
                         .maxWidth("150px")
                         .width("25%")
+                        .margin("0 0 1em 0")
 
-                        .label("Remember me?")
-                        .checkbox();
+                        .div()
+                        .asParent()
+                        .display(Display.FLEX)
+                        .flexDirection(FlexDirection.ROW)
+                        .alignItems(AlignItems.CENTER)
+                        .justifyContent(JustifyContent.CENTER)
+                        .gap("1em")
+                        .width("100%")
+
+                        .checkbox()
+                        .height("1em")
+                        .width("1em")
+                        .padding("0")
+                        .margin("0")
+
+                        .label("Keep me logged in")
+                        .padding("1px")
+                        .margin("0 0 2px 0");
             }
 
             @Override

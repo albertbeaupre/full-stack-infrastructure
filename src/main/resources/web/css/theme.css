@@ -1,12 +1,12 @@
-/* Modern, beautiful theme with a clean and vibrant aesthetic */
+/* Light grayscale theme with neutral aesthetics */
 :root {
-    --primary-color: #4a90e2;
-    --secondary-color: #50c878;
-    --background-color: #f5f7fa;
+    --primary-color: #333333;
+    --secondary-color: #555555;
+    --background-color: #f9f9f9;
     --surface-color: #ffffff;
-    --text-color: #2d3748;
-    --text-muted: #6b7280;
-    --accent-color: #ff6b6b;
+    --text-color: #111111;
+    --text-muted: #888888;
+    --accent-color: #444444;
     --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     --border-radius: 8px;
     --transition: all 0.3s ease;
@@ -34,12 +34,29 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
 }
 
-h1 { font-size: 2.5rem; }
-h2 { font-size: 2rem; }
-h3 { font-size: 1.75rem; }
-h4 { font-size: 1.5rem; }
-h5 { font-size: 1.25rem; }
-h6 { font-size: 1rem; }
+h1 {
+    font-size: 2.5rem;
+}
+
+h2 {
+    font-size: 2rem;
+}
+
+h3 {
+    font-size: 1.75rem;
+}
+
+h4 {
+    font-size: 1.5rem;
+}
+
+h5 {
+    font-size: 1.25rem;
+}
+
+h6 {
+    font-size: 1rem;
+}
 
 /* Paragraphs and text */
 p {
@@ -61,7 +78,7 @@ a:hover {
 /* Buttons */
 button, input[type="submit"], input[type="button"] {
     background-color: var(--primary-color);
-    color: #ffffff;
+    color: var(--surface-color);
     border: none;
     padding: 0.75rem 1.5rem;
     border-radius: var(--border-radius);
@@ -72,14 +89,14 @@ button, input[type="submit"], input[type="button"] {
 
 button:hover, input[type="submit"]:hover, input[type="button"]:hover {
     background-color: var(--accent-color);
-    transform: translateY(-2px);
+    transform: scale(1.01);
     box-shadow: var(--shadow);
 }
 
 /* Forms */
 input, textarea, select {
     background-color: var(--surface-color);
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--text-muted);
     border-radius: var(--border-radius);
     padding: 0.75rem;
     width: 100%;
@@ -90,7 +107,82 @@ input, textarea, select {
 input:focus, textarea:focus, select:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+    box-shadow: 0 0 0 3px rgba(51, 51, 51, 0.2);
+}
+
+/* Checkbox & Radio */
+input[type="checkbox"],
+input[type="radio"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
+    position: relative;
+    width: 1em;
+    height: 1em;
+    border-radius: 50%;
+    background-color: var(--surface-color);
+    transition: border-color 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+/* Checkbox inner circle */
+input[type="checkbox"]::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: .5em;
+    height: .5em;
+    margin: 0;
+    padding: 0;
+    background-color: var(--primary-color);
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+    transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+/* Radio inner dot */
+input[type="radio"]::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 6px;
+    height: 6px;
+    margin: 0;
+    padding: 0;
+    background-color: var(--primary-color);
+    border-radius: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+    transition: transform var(--transition), opacity var(--transition);
+}
+
+input[type="checkbox"]:hover,
+input[type="radio"]:hover {
+    border-color: var(--primary-color);
+}
+
+input[type="checkbox"]:checked {
+    border-color: var(--primary-color);
+    background-color: var(--surface-color);
+}
+
+input[type="checkbox"]:checked::after {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+}
+
+input[type="radio"]:checked {
+    border-color: var(--primary-color);
+}
+
+input[type="radio"]:checked::after {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
 }
 
 /* Labels */
@@ -114,21 +206,21 @@ table {
 th, td {
     padding: 1rem;
     text-align: left;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--text-muted);
 }
 
 th {
     background-color: var(--primary-color);
-    color: #ffffff;
+    color: var(--surface-color);
     font-weight: 600;
 }
 
 tr:nth-child(even) {
-    background-color: #f8fafc;
+    background-color: #f2f2f2;
 }
 
 tr:hover {
-    background-color: #edf2f7;
+    background-color: #e6e6e6;
 }
 
 /* Lists */
@@ -194,7 +286,7 @@ blockquote {
 /* Horizontal rule */
 hr {
     border: none;
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid var(--text-muted);
     margin: 2rem 0;
 }
 
@@ -218,9 +310,17 @@ pre {
         font-size: 14px;
     }
 
-    h1 { font-size: 2rem; }
-    h2 { font-size: 1.75rem; }
-    h3 { font-size: 1.5rem; }
+    h1 {
+        font-size: 2rem;
+    }
+
+    h2 {
+        font-size: 1.75rem;
+    }
+
+    h3 {
+        font-size: 1.5rem;
+    }
 
     button, input, textarea, select {
         padding: 0.5rem;

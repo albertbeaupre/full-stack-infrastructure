@@ -90,6 +90,14 @@
         return buf;
     };
 
+    packets_out[SEND_SUBMIT] = (id) => {
+        const buf = new Uint8Array(5);
+        const dv = new DataView(buf.buffer);
+        buf[0] = SEND_SUBMIT;
+        dv.setUint32(1, id);
+        return buf;
+    };
+
     packets_in[RECEIVE_NAVIGATE] = (view) => {
         const len = view.getUint16(1);
         const path = dec.decode(new Uint8Array(view.buffer, view.byteOffset + 3, len));
@@ -181,14 +189,29 @@
                 const evt = params[EVENT_NAME];
                 element.addEventListener(evt, (e) => {
                     const cid = parseInt(element.id);
-                    if (evt === "click") sendPacket(SEND_CLICK, cid, e.button, e.clientX, e.clientY, e.pageX, e.pageY, e.screenX, e.screenY, e.ctrlKey, e.shiftKey, e.altKey, e.metaKey);
-                    if (evt === "keyup") sendPacket(SEND_KEY_UP, cid, e.key, e.repeat, e.ctrlKey, e.shiftKey, e.altKey, e.metaKey);
-                    if (evt === "keydown") sendPacket(SEND_KEY_DOWN, cid, e.key, e.repeat, e.ctrlKey, e.shiftKey, e.altKey, e.metaKey);
-                    if (evt === "input") {
-                        const isCheckbox = e.target.type === "checkbox";
-                        const value = isCheckbox ? e.target.checked.toString() : e.target.value;
-                        sendPacket(SEND_VALUE_CHANGE, cid, value);
+
+                    switch (evt) {
+                        case "click":
+                            sendPacket(SEND_CLICK, cid, e.button, e.clientX, e.clientY, e.pageX, e.pageY, e.screenX, e.screenY, e.ctrlKey, e.shiftKey, e.altKey, e.metaKey);
+                            break;
+                        case "keyup":
+                            sendPacket(SEND_KEY_UP, cid, e.key, e.repeat, e.ctrlKey, e.shiftKey, e.altKey, e.metaKey);
+                            break;
+                        case "keydown":
+                            sendPacket(SEND_KEY_DOWN, cid, e.key, e.repeat, e.ctrlKey, e.shiftKey, e.altKey, e.metaKey);
+                            break;
+                        case "input": {
+                            const isCheckbox = e.target.type === "checkbox";
+                            const value = isCheckbox ? e.target.checked.toString() : e.target.value;
+                            sendPacket(SEND_VALUE_CHANGE, cid, value);
+                            break;
+                        }
+                        case "submit":
+                            e.preventDefault();
+                            sendPacket(SEND_SUBMIT, cid);
+                            break;
                     }
+
                 });
                 break;
             }

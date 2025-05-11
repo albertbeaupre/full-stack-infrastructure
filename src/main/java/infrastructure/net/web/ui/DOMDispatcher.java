@@ -29,6 +29,14 @@ public class DOMDispatcher {
         return this;
     }
 
+    /**
+     * Queues the updates from another {@code DOMDispatcher} into this dispatcher and clears
+     * the update queue of the provided dispatcher. This allows for merging update queues
+     * from multiple dispatchers into a single dispatcher.
+     *
+     * @param dispatcher the {@code DOMDispatcher} whose updates should be merged into this dispatcher
+     * @return this {@code DOMDispatcher} instance for method chaining
+     */
     public DOMDispatcher queue(DOMDispatcher dispatcher) {
         updateQueue.addAll(dispatcher.updateQueue);
         dispatcher.updateQueue.clear();

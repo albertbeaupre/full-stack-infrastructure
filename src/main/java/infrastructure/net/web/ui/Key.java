@@ -9,7 +9,7 @@ package infrastructure.net.web.ui;
  * in Java, making it easier to interpret and respond to keyboard input consistently
  * across your application.
  *
- * <p>Each constant maps directly to the {@code String} representation returned by
+ * <p>Each constant mapped directly to the {@code String} representation returned by
  * the browser when a specific key is pressed. For example, pressing the "a" key
  * returns {@code "a"}, and pressing the left arrow key returns {@code "ArrowLeft"}.
  *

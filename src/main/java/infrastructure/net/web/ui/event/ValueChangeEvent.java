@@ -2,6 +2,7 @@ package infrastructure.net.web.ui.event;
 
 import infrastructure.event.Event;
 import infrastructure.net.web.ui.Component;
+import infrastructure.net.web.ui.ValueComponent;
 
 /**
  * Fired when a {@link Component} that holds a value (e.g., a {@code ValueComponent})
@@ -19,17 +20,17 @@ public class ValueChangeEvent extends Event {
     /**
      * The component whose value has changed.
      */
-    private final Component component;
+    private final ValueComponent component;
 
     /**
      * The previous value before the change occurred.
      */
-    private final String oldValue;
+    private final Object oldValue;
 
     /**
      * The new value after the change occurred.
      */
-    private final String newValue;
+    private final Object newValue;
 
     /**
      * Constructs a new ValueChangeEvent.
@@ -38,7 +39,7 @@ public class ValueChangeEvent extends Event {
      * @param oldValue  the value before the change (maybe {@code null} if none)
      * @param newValue  the value after the change (maybe {@code null} if cleared)
      */
-    public ValueChangeEvent(Component component, String oldValue, String newValue) {
+    public ValueChangeEvent(ValueComponent component, Object oldValue, Object newValue) {
         this.component = component;
         this.oldValue = oldValue;
         this.newValue = newValue;
@@ -49,7 +50,7 @@ public class ValueChangeEvent extends Event {
      *
      * @return the source {@link Component}
      */
-    public Component getComponent() {
+    public ValueComponent getComponent() {
         return component;
     }
 
@@ -58,7 +59,7 @@ public class ValueChangeEvent extends Event {
      *
      * @return the previous value, or {@code null} if there was none
      */
-    public String getOldValue() {
+    public Object getOldValue() {
         return oldValue;
     }
 
@@ -67,7 +68,7 @@ public class ValueChangeEvent extends Event {
      *
      * @return the new value, or {@code null} if the value was cleared
      */
-    public String getNewValue() {
+    public Object getNewValue() {
         return newValue;
     }
 }

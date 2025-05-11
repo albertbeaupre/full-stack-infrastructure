@@ -1,5 +1,7 @@
 package infrastructure.net.web.ui;
 
+import infrastructure.event.EventListener;
+import infrastructure.event.EventPriority;
 import infrastructure.net.web.ui.event.ValueChangeEvent;
 
 /**
@@ -112,7 +114,7 @@ public abstract class ValueComponent<V> extends Component {
      */
     @Override
     protected void create() {
-        this.addValueChangeListener(e -> setValue(deconstruct(e.getNewValue())));
+
     }
 
     @Override

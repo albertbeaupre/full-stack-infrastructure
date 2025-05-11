@@ -38,7 +38,7 @@ import java.util.function.Consumer;
  *     .display(Display.FLEX)
  *     .width("100%")
  *     .lock(); // Make immutable
- * style.exportToFile(new File("styles.css"), true); // Minified output
+ * style.exportToFile(new File("dark.css"), true); // Minified output
  * </pre>
  *
  * @author Albert Beaupre
@@ -136,15 +136,12 @@ public class Style {
      * @throws IllegalArgumentException if property or value is invalid
      */
     private void validate(String property, String value) {
-        if (isLocked) {
+        if (isLocked)
             throw new IllegalStateException("Cannot modify locked Style instance [" + instanceID + "]");
-        }
-        if (property == null || property.trim().isEmpty()) {
+        if (property == null || property.trim().isEmpty())
             throw new IllegalArgumentException("Property must not be null or empty");
-        }
-        if (value == null || value.trim().isEmpty()) {
+        if (value == null || value.trim().isEmpty())
             throw new IllegalArgumentException("Value for property '" + property + "' must not be null or empty");
-        }
     }
 
     /**
@@ -175,7 +172,6 @@ public class Style {
      */
     public Style display(Display display) {
         if (display == null) throw new NullPointerException("Display enum cannot be null");
-        validate(Display.getPropertyName(), display.getValue());
         set(Display.getPropertyName(), display.getValue());
         return this;
     }
@@ -191,7 +187,6 @@ public class Style {
      */
     public Style flexDirection(FlexDirection flexDirection) {
         if (flexDirection == null) throw new NullPointerException("FlexDirection enum cannot be null");
-        validate(FlexDirection.getPropertyName(), flexDirection.getValue());
         set(FlexDirection.getPropertyName(), flexDirection.getValue());
         return this;
     }
@@ -207,7 +202,6 @@ public class Style {
      */
     public Style flexWrap(FlexWrap flexWrap) {
         if (flexWrap == null) throw new NullPointerException("FlexWrap enum cannot be null");
-        validate(FlexWrap.getPropertyName(), flexWrap.getValue());
         set(FlexWrap.getPropertyName(), flexWrap.getValue());
         return this;
     }
@@ -223,7 +217,6 @@ public class Style {
      */
     public Style flexGrow(FlexGrow flexGrow) {
         if (flexGrow == null) throw new NullPointerException("FlexGrow enum cannot be null");
-        validate(FlexGrow.getPropertyName(), flexGrow.getValue());
         set(FlexGrow.getPropertyName(), flexGrow.getValue());
         return this;
     }
@@ -239,7 +232,6 @@ public class Style {
      */
     public Style flexShrink(FlexShrink flexShrink) {
         if (flexShrink == null) throw new NullPointerException("FlexShrink enum cannot be null");
-        validate(FlexShrink.getPropertyName(), flexShrink.getValue());
         set(FlexShrink.getPropertyName(), flexShrink.getValue());
         return this;
     }
@@ -255,7 +247,6 @@ public class Style {
      */
     public Style flex(Flex flex) {
         if (flex == null) throw new NullPointerException("Flex enum cannot be null");
-        validate(Flex.getPropertyName(), flex.getValue());
         set(Flex.getPropertyName(), flex.getValue());
         return this;
     }
@@ -271,7 +262,6 @@ public class Style {
      */
     public Style alignItems(AlignItems alignItems) {
         if (alignItems == null) throw new NullPointerException("AlignItems enum cannot be null");
-        validate(AlignItems.getPropertyName(), alignItems.getValue());
         set(AlignItems.getPropertyName(), alignItems.getValue());
         return this;
     }
@@ -287,7 +277,6 @@ public class Style {
      */
     public Style alignSelf(AlignSelf alignSelf) {
         if (alignSelf == null) throw new NullPointerException("AlignSelf enum cannot be null");
-        validate(AlignSelf.getPropertyName(), alignSelf.getValue());
         set(AlignSelf.getPropertyName(), alignSelf.getValue());
         return this;
     }
@@ -303,7 +292,6 @@ public class Style {
      */
     public Style justifyContent(JustifyContent justifyContent) {
         if (justifyContent == null) throw new NullPointerException("JustifyContent enum cannot be null");
-        validate(JustifyContent.getPropertyName(), justifyContent.getValue());
         set(JustifyContent.getPropertyName(), justifyContent.getValue());
         return this;
     }
@@ -319,7 +307,6 @@ public class Style {
      */
     public Style alignContent(AlignContent alignContent) {
         if (alignContent == null) throw new NullPointerException("AlignContent enum cannot be null");
-        validate(AlignContent.getPropertyName(), alignContent.getValue());
         set(AlignContent.getPropertyName(), alignContent.getValue());
         return this;
     }
@@ -333,7 +320,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style margin(String value) {
-        validate("margin", value);
         set("margin", value);
         return this;
     }
@@ -347,7 +333,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style padding(String value) {
-        validate("padding", value);
         set("padding", value);
         return this;
     }
@@ -361,7 +346,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style width(String value) {
-        validate("width", value);
         set("width", value);
         return this;
     }
@@ -375,7 +359,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style height(String value) {
-        validate("height", value);
         set("height", value);
         return this;
     }
@@ -391,7 +374,6 @@ public class Style {
      */
     public Style fontWeight(FontWeight fontWeight) {
         if (fontWeight == null) throw new NullPointerException("FontWeight enum cannot be null");
-        validate(FontWeight.getPropertyName(), fontWeight.getValue());
         set(FontWeight.getPropertyName(), fontWeight.getValue());
         return this;
     }
@@ -407,7 +389,6 @@ public class Style {
      */
     public Style textAlign(TextAlign textAlign) {
         if (textAlign == null) throw new NullPointerException("TextAlign enum cannot be null");
-        validate(TextAlign.getPropertyName(), textAlign.getValue());
         set(TextAlign.getPropertyName(), textAlign.getValue());
         return this;
     }
@@ -425,7 +406,6 @@ public class Style {
      */
     public Style visibility(Visibility visibility) {
         if (visibility == null) throw new NullPointerException("Visibility enum cannot be null");
-        validate(Visibility.getPropertyName(), visibility.getValue());
         set(Visibility.getPropertyName(), visibility.getValue());
         return this;
     }
@@ -441,7 +421,6 @@ public class Style {
      */
     public Style position(Position position) {
         if (position == null) throw new NullPointerException("Position enum cannot be null");
-        validate(Position.getPropertyName(), position.getValue());
         set(Position.getPropertyName(), position.getValue());
         return this;
     }
@@ -459,7 +438,6 @@ public class Style {
      */
     public Style overflow(Overflow overflow) {
         if (overflow == null) throw new NullPointerException("Overflow enum cannot be null");
-        validate(Overflow.getPropertyName(), overflow.getValue());
         set(Overflow.getPropertyName(), overflow.getValue());
         return this;
     }
@@ -473,7 +451,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style borderRadius(String value) {
-        validate("border-radius", value);
         set("border-radius", value);
         return this;
     }
@@ -487,7 +464,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style border(String value) {
-        validate("border", value);
         set("border", value);
         return this;
     }
@@ -499,9 +475,8 @@ public class Style {
      * @return the value of the property, or null if not set
      */
     public String get(String property) {
-        if (property == null || property.trim().isEmpty()) {
+        if (property == null || property.trim().isEmpty())
             return null;
-        }
         for (CSSDeclaration decl : styleRule.getAllDeclarations()) {
             if (decl.getProperty().equals(property)) {
                 return decl.getExpression().getAsCSSString();
@@ -517,9 +492,9 @@ public class Style {
      * @throws IllegalStateException if the style is locked
      */
     public Style clear() {
-        if (isLocked) {
+        if (isLocked)
             throw new IllegalStateException("Cannot clear locked Style instance [" + instanceID + "]");
-        }
+
         styleRule.removeAllDeclarations();
         return this;
     }
@@ -543,7 +518,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style gap(String value) {
-        validate("gap", value);
         set("gap", value);
         return this;
     }
@@ -557,7 +531,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style columnGap(String value) {
-        validate("column-gap", value);
         set("column-gap", value);
         return this;
     }
@@ -571,7 +544,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style rowGap(String value) {
-        validate("row-gap", value);
         set("row-gap", value);
         return this;
     }
@@ -585,7 +557,6 @@ public class Style {
      * @throws IllegalArgumentException if definition is null or empty
      */
     public Style gridTemplateColumns(String definition) {
-        validate("grid-template-columns", definition);
         set("grid-template-columns", definition);
         return this;
     }
@@ -599,7 +570,6 @@ public class Style {
      * @throws IllegalArgumentException if definition is null or empty
      */
     public Style gridTemplateRows(String definition) {
-        validate("grid-template-rows", definition);
         set("grid-template-rows", definition);
         return this;
     }
@@ -613,7 +583,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style gridAutoFlow(String value) {
-        validate("grid-auto-flow", value);
         set("grid-auto-flow", value);
         return this;
     }
@@ -627,7 +596,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style minWidth(String value) {
-        validate("min-width", value);
         set("min-width", value);
         return this;
     }
@@ -641,7 +609,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style maxWidth(String value) {
-        validate("max-width", value);
         set("max-width", value);
         return this;
     }
@@ -655,7 +622,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style minHeight(String value) {
-        validate("min-height", value);
         set("min-height", value);
         return this;
     }
@@ -669,7 +635,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style maxHeight(String value) {
-        validate("max-height", value);
         set("max-height", value);
         return this;
     }
@@ -683,7 +648,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style boxSizing(String value) {
-        validate("box-sizing", value);
         set("box-sizing", value);
         return this;
     }
@@ -697,7 +661,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style cursor(String value) {
-        validate("cursor", value);
         set("cursor", value);
         return this;
     }
@@ -711,7 +674,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style opacity(String value) {
-        validate("opacity", value);
         set("opacity", value);
         return this;
     }
@@ -725,7 +687,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style zIndex(String value) {
-        validate("z-index", value);
         set("z-index", value);
         return this;
     }
@@ -739,7 +700,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style top(String value) {
-        validate("top", value);
         set("top", value);
         return this;
     }
@@ -753,7 +713,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style right(String value) {
-        validate("right", value);
         set("right", value);
         return this;
     }
@@ -768,7 +727,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style outline(String value) {
-        validate("outline", value);
         set("outline", value);
         return this;
     }
@@ -782,7 +740,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style outlineOffset(String value) {
-        validate("outline-offset", value);
         set("outline-offset", value);
         return this;
     }
@@ -796,7 +753,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style boxShadow(String value) {
-        validate("box-shadow", value);
         set("box-shadow", value);
         return this;
     }
@@ -810,7 +766,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style background(String value) {
-        validate("background", value);
         set("background", value);
         return this;
     }
@@ -824,7 +779,6 @@ public class Style {
      * @throws IllegalArgumentException if value is null or empty
      */
     public Style backgroundColor(String value) {
-        validate("background-color", value);
         set("background-color", value);
         return this;
     }
@@ -964,7 +918,7 @@ public class Style {
 
         CascadingStyleSheet sheet = CSSReader.readFromString(cssContent, ECSSVersion.CSS30);
         if (sheet == null)
-            throw new IllegalArgumentException("Failed to parse CSS content");  // :contentReference[oaicite:0]{index=0}
+            throw new IllegalArgumentException("Failed to parse CSS content");
 
         for (ICSSTopLevelRule rule : sheet.getAllRules()) {
             if (rule instanceof CSSStyleRule cssRule) {
@@ -979,6 +933,701 @@ public class Style {
         }
 
         throw new IllegalArgumentException("No style rule found in CSS content");
+    }
+
+    /**
+     * Sets the CSS {@code bottom} property.
+     *
+     * @param value the CSS bottom offset (e.g., "0", "10px")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style bottom(String value) {
+        set("bottom", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code left} property.
+     *
+     * @param value the CSS left offset (e.g., "0", "5px")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style left(String value) {
+        set("left", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code margin-top} property.
+     *
+     * @param value the margin value for the top (e.g., "1rem", "10px")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style marginTop(String value) {
+        set("margin-top", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code margin-right} property.
+     *
+     * @param value the margin value for the right (e.g., "1rem")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style marginRight(String value) {
+        set("margin-right", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code margin-bottom} property.
+     *
+     * @param value the margin value for the bottom (e.g., "10px")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style marginBottom(String value) {
+        set("margin-bottom", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code margin-left} property.
+     *
+     * @param value the margin value for the left (e.g., "2em")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style marginLeft(String value) {
+        set("margin-left", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code padding-top} property.
+     *
+     * @param value the top padding value (e.g., "1rem")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style paddingTop(String value) {
+        set("padding-top", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code padding-right} property.
+     *
+     * @param value the right padding value (e.g., "0.5em")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style paddingRight(String value) {
+        set("padding-right", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code padding-bottom} property.
+     *
+     * @param value the bottom padding value (e.g., "10px")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style paddingBottom(String value) {
+        set("padding-bottom", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code padding-left} property.
+     *
+     * @param value the left padding value (e.g., "1rem")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style paddingLeft(String value) {
+        set("padding-left", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code border-top} property.
+     *
+     * @param value the border value for the top (e.g., "1px solid black")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style borderTop(String value) {
+        set("border-top", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code border-right} property.
+     *
+     * @param value the border value for the right
+     * @return this {@code Style} instance for chaining
+     */
+    public Style borderRight(String value) {
+        set("border-right", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code border-bottom} property.
+     *
+     * @param value the border value for the bottom
+     * @return this {@code Style} instance for chaining
+     */
+    public Style borderBottom(String value) {
+        set("border-bottom", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code border-left} property.
+     *
+     * @param value the border value for the left
+     * @return this {@code Style} instance for chaining
+     */
+    public Style borderLeft(String value) {
+        set("border-left", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code border-width} property.
+     *
+     * @param value the width of the border (e.g., "2px")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style borderWidth(String value) {
+        set("border-width", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code border-style} property.
+     *
+     * @param value the style of the border (e.g., "solid", "dashed")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style borderStyle(String value) {
+        set("border-style", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code border-color} property.
+     *
+     * @param value the color of the border (e.g., "red", "#ccc")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style borderColor(String value) {
+        set("border-color", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code font-size} property.
+     *
+     * @param value the font size (e.g., "16px", "1.25rem")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style fontSize(String value) {
+        set("font-size", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code font-family} property.
+     *
+     * @param value the font family (e.g., "Arial, sans-serif")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style fontFamily(String value) {
+        set("font-family", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code font-style} property.
+     *
+     * @param style the font style (e.g., {@link FontStyle#ITALIC})
+     * @return this {@code Style} instance for chaining
+     */
+    public Style fontStyle(FontStyle style) {
+        set(FontStyle.getPropertyName(), style.getValue());
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code line-height} property.
+     *
+     * @param value the line height (e.g., "1.5", "24px")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style lineHeight(String value) {
+        set("line-height", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code letter-spacing} property.
+     *
+     * @param value the spacing between letters (e.g., "0.05em", "1px")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style letterSpacing(String value) {
+        set("letter-spacing", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code word-spacing} property.
+     *
+     * @param value the spacing between words (e.g., "2px")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style wordSpacing(String value) {
+        set("word-spacing", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code text-decoration} property using a {@link TextDecoration} enum.
+     *
+     * @param deco the text decoration (e.g., {@link TextDecoration#UNDERLINE})
+     * @return this {@code Style} instance for chaining
+     */
+    public Style textDecoration(TextDecoration deco) {
+        set(TextDecoration.getPropertyName(), deco.getValue());
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code text-transform} property using a {@link TextTransform} enum.
+     *
+     * @param trans the text transformation (e.g., {@link TextTransform#UPPERCASE})
+     * @return this {@code Style} instance for chaining
+     */
+    public Style textTransform(TextTransform trans) {
+        set(TextTransform.getPropertyName(), trans.getValue());
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code white-space} property using a {@link WhiteSpace} enum.
+     *
+     * @param ws the white-space behavior (e.g., {@link WhiteSpace#NOWRAP})
+     * @return this {@code Style} instance for chaining
+     */
+    public Style whiteSpace(WhiteSpace ws) {
+        set(WhiteSpace.getPropertyName(), ws.getValue());
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code text-overflow} property.
+     *
+     * @param value the text overflow behavior (e.g., "ellipsis")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style textOverflow(String value) {
+        set("text-overflow", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code background-image} property.
+     *
+     * @param value the background image (e.g., "url('img.png')")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style backgroundImage(String value) {
+        set("background-image", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code background-position} property.
+     *
+     * @param value the background position (e.g., "center center", "top left")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style backgroundPosition(String value) {
+        set("background-position", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code background-size} property.
+     *
+     * @param value the background size (e.g., "cover", "contain")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style backgroundSize(String value) {
+        set("background-size", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code background-repeat} property using a {@link BackgroundRepeat} enum.
+     *
+     * @param rep the repeat value (e.g., {@link BackgroundRepeat#NO_REPEAT})
+     * @return this {@code Style} instance for chaining
+     */
+    public Style backgroundRepeat(BackgroundRepeat rep) {
+        set(BackgroundRepeat.getPropertyName(), rep.getValue());
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code background-attachment} property using a {@link BackgroundAttachment} enum.
+     *
+     * @param att the attachment behavior (e.g., {@link BackgroundAttachment#FIXED})
+     * @return this {@code Style} instance for chaining
+     */
+    public Style backgroundAttachment(BackgroundAttachment att) {
+        set(BackgroundAttachment.getPropertyName(), att.getValue());
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code grid-auto-rows} property.
+     *
+     * @param value the row sizing behavior (e.g., "min-content", "100px")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style gridAutoRows(String value) {
+        set("grid-auto-rows", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code grid-auto-columns} property.
+     *
+     * @param value the column sizing behavior (e.g., "1fr", "200px")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style gridAutoColumns(String value) {
+        set("grid-auto-columns", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code grid-row} property.
+     *
+     * @param value the grid row placement (e.g., "1 / span 2")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style gridRow(String value) {
+        set("grid-row", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code grid-column} property.
+     *
+     * @param value the grid column placement (e.g., "2 / 4")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style gridColumn(String value) {
+        set("grid-column", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code grid-area} property.
+     *
+     * @param value the named grid area or shorthand (e.g., "header", "1 / 1 / 2 / 3")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style gridArea(String value) {
+        set("grid-area", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code justify-items} property using a {@link JustifyItems} enum.
+     *
+     * @param ji the justification value (e.g., {@link JustifyItems#CENTER})
+     * @return this {@code Style} instance for chaining
+     */
+    public Style justifyItems(JustifyItems ji) {
+        set(JustifyItems.getPropertyName(), ji.getValue());
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code justify-self} property using a {@link JustifySelf} enum.
+     *
+     * @param js the justification value (e.g., {@link JustifySelf#END})
+     * @return this {@code Style} instance for chaining
+     */
+    public Style justifySelf(JustifySelf js) {
+        set(JustifySelf.getPropertyName(), js.getValue());
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code transform} property.
+     *
+     * @param value the transform function(s) (e.g., "scale(1.2) rotate(45deg)")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style transform(String value) {
+        set("transform", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code transform-origin} property.
+     *
+     * @param value the transform origin point (e.g., "center", "top left")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style transformOrigin(String value) {
+        set("transform-origin", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code transition} property.
+     *
+     * @param value the transition specification (e.g., "all 0.3s ease")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style transition(String value) {
+        set("transition", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code animation} property.
+     *
+     * @param value the animation shorthand (e.g., "fade-in 1s ease-in-out")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style animation(String value) {
+        set("animation", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code filter} property.
+     *
+     * @param value the filter function (e.g., "blur(5px)")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style filter(String value) {
+        set("filter", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code backdrop-filter} property.
+     *
+     * @param value the backdrop filter function (e.g., "brightness(0.8)")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style backdropFilter(String value) {
+        set("backdrop-filter", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code mix-blend-mode} property using a {@link MixBlendMode} enum.
+     *
+     * @param mbm the blend mode (e.g., {@link MixBlendMode#MULTIPLY})
+     * @return this {@code Style} instance for chaining
+     */
+    public Style mixBlendMode(MixBlendMode mbm) {
+        set(MixBlendMode.getPropertyName(), mbm.getValue());
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code overflow-x} property using a {@link Overflow} enum.
+     *
+     * @param overflow the overflow behavior for the x-axis
+     * @return this {@code Style} instance for chaining
+     */
+    public Style overflowX(Overflow overflow) {
+        set("overflow-x", overflow.getValue());
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code overflow-y} property using a {@link Overflow} enum.
+     *
+     * @param overflow the overflow behavior for the y-axis
+     * @return this {@code Style} instance for chaining
+     */
+    public Style overflowY(Overflow overflow) {
+        set("overflow-y", overflow.getValue());
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code scroll-behavior} property using a {@link ScrollBehavior} enum.
+     *
+     * @param sb the scroll behavior (e.g., {@link ScrollBehavior#SMOOTH})
+     * @return this {@code Style} instance for chaining
+     */
+    public Style scrollBehavior(ScrollBehavior sb) {
+        set(ScrollBehavior.getPropertyName(), sb.getValue());
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code scroll-snap-type} property.
+     *
+     * @param value the snap type (e.g., "x mandatory")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style scrollSnapType(String value) {
+        set("scroll-snap-type", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code scroll-snap-align} property.
+     *
+     * @param value the alignment (e.g., "start center")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style scrollSnapAlign(String value) {
+        set("scroll-snap-align", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code pointer-events} property using a {@link PointerEvents} enum.
+     *
+     * @param pe the pointer event behavior (e.g., {@link PointerEvents#NONE})
+     * @return this {@code Style} instance for chaining
+     */
+    public Style pointerEvents(PointerEvents pe) {
+        set(PointerEvents.getPropertyName(), pe.getValue());
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code user-select} property using a {@link UserSelect} enum.
+     *
+     * @param us the user select behavior (e.g., {@link UserSelect#NONE})
+     * @return this {@code Style} instance for chaining
+     */
+    public Style userSelect(UserSelect us) {
+        set(UserSelect.getPropertyName(), us.getValue());
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code column-count} property.
+     *
+     * @param count the number of columns
+     * @return this {@code Style} instance for chaining
+     */
+    public Style columnCount(int count) {
+        set("column-count", String.valueOf(count));
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code column-width} property.
+     *
+     * @param value the column width (e.g., "200px", "10em")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style columnWidth(String value) {
+        set("column-width", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code column-rule} property.
+     *
+     * @param value the column rule (e.g., "1px solid #ccc")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style columnRule(String value) {
+        set("column-rule", value);
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code list-style-type} property using a {@link ListStyleType} enum.
+     *
+     * @param lst the list style type (e.g., {@link ListStyleType#CIRCLE})
+     * @return this {@code Style} instance for chaining
+     */
+    public Style listStyleType(ListStyleType lst) {
+        set(ListStyleType.getPropertyName(), lst.getValue());
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code list-style-position} property using a {@link ListStylePosition} enum.
+     *
+     * @param lsp the list style position (e.g., {@link ListStylePosition#INSIDE})
+     * @return this {@code Style} instance for chaining
+     */
+    public Style listStylePosition(ListStylePosition lsp) {
+        set(ListStylePosition.getPropertyName(), lsp.getValue());
+        return this;
+    }
+
+    /**
+     * Sets the CSS {@code list-style-image} property.
+     *
+     * @param value the URL or keyword for the list style image (e.g., "url('bullet.png')")
+     * @return this {@code Style} instance for chaining
+     */
+    public Style listStyleImage(String value) {
+        set("list-style-image", value);
+        return this;
+    }
+
+    /**
+     * Combines this style's selector with another using a CSS combinator and applies
+     * all declarations to the resulting compound selector.
+     * <p>
+     * For example, if the base selector is {@code ".parent"} and you call
+     * {@code combinator(">", ".child")}, the resulting selector will be:
+     * {@code ".parent > .child"}
+     *
+     * @param combinator the CSS combinator to use (e.g., ">", "+", "~", " ")
+     * @param otherSel   the selector to combine with (e.g., ".child", "#id")
+     * @return this {@code Style} instance for chaining
+     * @throws IllegalArgumentException if either selector is invalid
+     */
+    public Style combinator(String combinator, String otherSel) {
+        validateSelector(combinator);
+        validateSelector(otherSel);
+        String combined = this.selector + " " + combinator + " " + otherSel;
+
+        // Remove old rule and rebuild with new combined selector
+        css.getAllRules().remove(styleRule);
+        CSSSelector sel = new CSSSelector();
+        sel.addMember(new CSSSelectorSimpleMember(combined));
+        styleRule.getAllSelectors().clear();
+        styleRule.addSelector(sel);
+        css.addRule(styleRule);
+
+        return this;
+    }
+
+    /**
+     * Sets a custom CSS variable using the {@code --name: value} syntax.
+     * <p>
+     * Custom properties must begin with {@code --}, per CSS specification.
+     *
+     * @param name  the variable name (e.g., "--main-color")
+     * @param value the value of the custom property (e.g., "#ff0000")
+     * @return this {@code Style} instance for chaining
+     * @throws IllegalArgumentException if the name does not start with "--"
+     */
+    public Style customProperty(String name, String value) {
+        if (!name.startsWith("--"))
+            throw new IllegalArgumentException("Custom property must start with '--'");
+        set(name, value);
+        return this;
     }
 
     /**

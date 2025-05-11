@@ -118,9 +118,9 @@ public class EventPublisher {
      */
     private TreeSet<EventListener> createSet(Class<? extends Event> clazz) {
         return new TreeSet<>((listener1, listener2) -> {
-            int compare = Integer.compare(extractPriority(listener1, clazz), extractPriority(listener2, clazz));
+            int compare = Integer.compare(extractPriority(listener2, clazz), extractPriority(listener1, clazz));
             if (compare == 0)
-                return Integer.compare(System.identityHashCode(listener1), System.identityHashCode(listener2));
+                return Integer.compare(System.identityHashCode(listener2), System.identityHashCode(listener1));
             return compare;
         });
     }
