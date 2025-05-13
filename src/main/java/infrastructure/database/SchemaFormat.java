@@ -1,4 +1,3 @@
-// SchemaFormat.java
 package infrastructure.database;
 
 import java.lang.annotation.*;

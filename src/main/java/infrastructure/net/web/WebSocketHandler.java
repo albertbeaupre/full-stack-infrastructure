@@ -54,7 +54,7 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<BinaryWebSocke
     /**
      * A thread-safe queue that generates long-based UUIDs used for session IDs.
      */
-    private final LongUUIDQueue uuidQueue = new LongUUIDQueue();
+    private static final LongUUIDQueue uuidQueue = new LongUUIDQueue();
 
     /**
      * Invoked when a client disconnects from the WebSocket.
@@ -70,6 +70,12 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<BinaryWebSocke
         Log.debug("Channel closed: {}", ctx.channel().remoteAddress());
 
         SessionContext.unregister(ctx.channel());
+    }
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
+        super.channelActive(ctx);
+        Log.debug("Channel opened: {}", ctx.channel().remoteAddress());
     }
 
     /**
@@ -118,42 +124,27 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<BinaryWebSocke
                 Set<Cookie> cookies = ServerCookieDecoder.STRICT.decode(cookieHeader);
                 for (Cookie cookie : cookies) {
                     if (cookie.name().equals("sessionID")) {
-                        try {
-                            long sessionID = Long.parseLong(cookie.value());
-                            session = new SessionContext(sessionID, ctx.channel());
-                            SessionContext.register(ctx.channel(), session);
+                        long sessionID = Long.parseLong(cookie.value());
+                        session = SessionContext.get(sessionID);
+                        if (session != null) {
+                            session.setChannel(ctx.channel());
                             SessionContext.set(session);
                             Log.debug("Resumed session: {}", sessionID);
                             return;
-                        } catch (NumberFormatException e) {
-                            Log.warn("Invalid sessionID in cookie: {}", cookie.value());
-                            break;
                         }
                     }
                 }
             }
 
             long sessionID = uuidQueue.pop();
+
             session = new SessionContext(sessionID, ctx.channel());
-            SessionContext.register(ctx.channel(), session);
+            SessionContext.register(sessionID, session);
             SessionContext.set(session);
             Log.debug("Created new session: {}", sessionID);
         } else {
             super.userEventTriggered(ctx, evt);
         }
-    }
-
-    private void sendSessionCookie(ChannelHandlerContext ctx, String sessionID) {
-        Cookie cookie = new DefaultCookie("sessionID", sessionID);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/");
-
-        String encoded = ServerCookieEncoder.STRICT.encode(cookie);
-
-        FullHttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-        response.headers().add(HttpHeaderNames.SET_COOKIE, encoded);
-
-        ctx.writeAndFlush(response);
     }
 
     /**

@@ -2,9 +2,7 @@ package infrastructure.net.web;
 
 import infrastructure.net.PacketHandler;
 import infrastructure.net.web.packets.*;
-import infrastructure.net.web.ui.Designer;
 import infrastructure.net.web.ui.UI;
-import infrastructure.net.web.ui.css.*;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -155,67 +153,6 @@ public final class WebServer implements Runnable {
         WebServer.getRouter().addRoute(new Route() {
             @Override
             public void load(UI ui) {
-                Designer.begin(ui)
-
-                        .div().asParent()
-                        .display(Display.FLEX)
-                        .flex(Flex.AUTO)
-                        .flexDirection(FlexDirection.COLUMN)
-                        .alignItems(AlignItems.CENTER)
-                        .justifyContent(JustifyContent.CENTER)
-                        .alignContent(AlignContent.CENTER)
-                        .gap("1em")
-                        .width("100vw")
-                        .height("100vh")
-
-                        .h1("Log Into Messy")
-                        .textAlign(TextAlign.CENTER)
-                        .margin("0 0 1em 0")
-
-                        .textField("Username")
-                        .maxWidth("300px")
-                        .minWidth("150px")
-                        .width("50%")
-
-                        .password("Password")
-                        .onValueChange(e -> {
-                            System.out.printf("old=%s, new=%s, current=%s\n", e.getOldValue(), e.getNewValue(), e.getComponent().getValue());
-                        })
-                        .maxWidth("300px")
-                        .minWidth("150px")
-                        .width("50%")
-                        .margin("0 0 3em 0")
-
-                        .button("Login")
-                        .onClick(e -> {
-                            e.getComponent().getStyle()
-                                    .width("50%")
-                                    .maxWidth("50%")
-                                    .minWidth("25%");
-                        })
-                        .minWidth("80px")
-                        .maxWidth("150px")
-                        .width("25%")
-                        .margin("0 0 1em 0")
-
-                        .div()
-                        .asParent()
-                        .display(Display.FLEX)
-                        .flexDirection(FlexDirection.ROW)
-                        .alignItems(AlignItems.CENTER)
-                        .justifyContent(JustifyContent.CENTER)
-                        .gap("1em")
-                        .width("100%")
-
-                        .checkbox()
-                        .height("1em")
-                        .width("1em")
-                        .padding("0")
-                        .margin("0")
-
-                        .label("Keep me logged in")
-                        .padding("1px")
-                        .margin("0 0 2px 0");
             }
 
             @Override

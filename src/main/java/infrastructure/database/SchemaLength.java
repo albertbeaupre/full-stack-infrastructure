@@ -12,5 +12,5 @@ public @interface SchemaLength {
     /**
      * Maximum allowed length (inclusive).
      */
-    int max();
+    int max() default 120;
 }

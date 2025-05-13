@@ -2,7 +2,7 @@
     const SEND_NAVIGATE = 0, SEND_CLICK = 1, SEND_KEY_UP = 2, SEND_KEY_DOWN = 3,
         SEND_VALUE_CHANGE = 4, SEND_SUBMIT = 5;
 
-    const RECEIVE_NAVIGATE = 0, RECEIVE_DOM_UPDATE = 1;
+    const RECEIVE_NAVIGATE = 0, RECEIVE_DOM_UPDATE = 1, RECEIVE_COOKIE = 2;
 
     const SET_TITLE = 0, SET_TEXT = 1, SET_HTML = 2, SET_ATTRIBUTE = 3, SET_PROPERTY = 4, SET_CLASS = 5,
         SET_STYLE = 6, SET_VALUE = 7, APPEND_CHILD = 8, REMOVE = 9,
@@ -15,6 +15,9 @@
         STYLE_PROP = 6, STYLE_VAL = 7, EVENT_NAME = 8, CLASS_TOGGLE = 9, FORCE = 10,
         DATASET_KEY = 11, DATASET_VAL = 12, TOP = 13, LEFT = 14, BEHAVIOR = 15,
         IDENTIFIER = 16, TYPE = 17;
+
+    const COOKIE_NAME = 0, COOKIE_VALUE = 1, COOKIE_PATH = 2, COOKIE_MAX_AGE = 3,
+        COOKIE_EXPIRES = 4, COOKIE_DOMAIN = 5, COOKIE_SECURE = 6, COOKIE_HTTP_ONLY = 7, COOKIE_SAME_SITE = 8;
 
     const BOOLEAN_PROPERTIES = new Set(["checked", "disabled", "selected", "readonly", "required", "autofocus", "multiple"]);
 
@@ -98,6 +101,37 @@
         return buf;
     };
 
+    packets_in[RECEIVE_COOKIE] = (view) => {
+        let offset = 1;
+        const paramCount = view.getUint8(offset++);
+        const params = {};
+
+        for (let i = 0; i < paramCount; i++) {
+            const key = view.getUint8(offset++);
+            const len = view.getUint16(offset);
+            offset += 2;
+            params[key] = dec.decode(new Uint8Array(view.buffer, offset, len));
+            offset += len;
+        }
+
+        if (!params[COOKIE_NAME] || !params[COOKIE_VALUE]) {
+            console.error("Missing required cookie name or value");
+            return;
+        }
+
+        let cookieString = `${params[COOKIE_NAME]}=${params[COOKIE_VALUE]}`;
+        if (params[COOKIE_PATH]) cookieString += `; path=${params[COOKIE_PATH]}`;
+        if (params[COOKIE_MAX_AGE]) cookieString += `; max-age=${params[COOKIE_MAX_AGE]}`;
+        if (params[COOKIE_EXPIRES]) cookieString += `; expires=${params[COOKIE_EXPIRES]}`;
+        if (params[COOKIE_DOMAIN]) cookieString += `; domain=${params[COOKIE_DOMAIN]}`;
+        if (params[COOKIE_SECURE] === "true") cookieString += `; secure`;
+        if (params[COOKIE_HTTP_ONLY] === "true") cookieString += `; HttpOnly`;
+        if (params[COOKIE_SAME_SITE]) cookieString += `; SameSite=${params[COOKIE_SAME_SITE]}`;
+
+        document.cookie = cookieString;
+        console.log(`Set cookie: ${cookieString}`);
+    };
+
     packets_in[RECEIVE_NAVIGATE] = (view) => {
         const len = view.getUint16(1);
         const path = dec.decode(new Uint8Array(view.buffer, view.byteOffset + 3, len));
@@ -130,7 +164,7 @@
 
     function updateDOM(type, id, params) {
         const element = document.getElementById(id);
-        console.log("type=" + type, "id=" + id, "params=" + JSON.stringify(params));
+        console.info("type=" + type, "id=" + id, "params=" + JSON.stringify(params));
         if (!element) return;
 
         switch (type) {

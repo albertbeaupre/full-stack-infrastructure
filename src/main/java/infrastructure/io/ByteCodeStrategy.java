@@ -34,12 +34,12 @@ public interface ByteCodeStrategy<B> {
      * Implementations may choose to compress, encrypt, or otherwise transform the data,
      * provided the transformation is fully reversible.
      *
-     * @param byteCode the byte‐code object to serialize; must not be {@code null}
+     * @param object the byte‐code object to serialize; must not be {@code null}
      * @return a non‐null {@code byte[]} containing the serialized form
-     * @throws IllegalArgumentException if {@code byteCode} is {@code null} or cannot be serialized
+     * @throws IllegalArgumentException if {@code object} is {@code null} or cannot be serialized
      * @throws IllegalStateException if an unexpected error occurs during serialization
      */
-    byte[] construct(B byteCode);
+    byte[] construct(B object);
 
     /**
      * Deserializes the given raw byte array back into a byte‐code object.

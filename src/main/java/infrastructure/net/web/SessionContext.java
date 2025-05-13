@@ -18,67 +18,49 @@ import java.util.concurrent.ConcurrentHashMap;
  *   <li>a {@link UI} instance representing the server-driven UI state.</li>
  * </ul>
  * <p>
- * Provides static methods to register/unregister sessions by channel,
+ * Provides static methods to register/unregister sessions by session ID,
  * retrieve all active sessions, and manage a thread-local “current”
  * session for use in UI callbacks (e.g., {@code UI.access()}).
  * <p>
  * Also handles safe transmission of binary payloads via WebSocket frames,
  * including buffer lifecycle management to prevent memory leaks.
- *
- * @author Albert
- * @version 1.0
- * @since May 2, 2025
  */
 public class SessionContext {
 
     /**
      * A {@code ThreadLocal} instance that maintains the current session context
-     * associated with the executing thread. This thread-local reference allows
-     * threads to have an isolated view of the {@link SessionContext}, ensuring that
-     * operations dependent on a session are correctly scoped to the thread executing them.
+     * associated with the executing thread. This allows thread-safe usage of session-specific
+     * data during server-driven UI operations.
      */
     private static final ThreadLocal<SessionContext> CURRENT = new ThreadLocal<>();
 
     /**
-     * A static collection of active WebSocket sessions mapped by their associated Netty channels.
-     * <p>
-     * This map is used to manage and track active user sessions within the
-     * application, associating a {@link SessionContext} to each connected {@link Channel}.
-     * It facilitates operations such as session retrieval, registration, and
-     * unregistration, ensuring thread-safe access and modification through its
-     * underlying {@link ConcurrentHashMap} implementation.
-     * <p>
-     * Key operations include:
-     * - Associating channels with session contexts ({@link SessionContext#register}).
-     * - Removing sessions when channels disconnect ({@link SessionContext#unregister}).
-     * - Retrieving sessions for specific channels ({@link SessionContext#get(Channel)}).
-     * - Providing a view of all
+     * Map of active sessions, keyed by their session ID.
+     * Provides fast lookup for active WebSocket clients.
      */
-    private static final Map<Channel, SessionContext> SESSIONS = new ConcurrentHashMap<>();
+    private static final Map<Long, SessionContext> SESSIONS = new ConcurrentHashMap<>();
 
     /**
-     * Unique identifier for this session.
+     * Unique identifier assigned to this session.
      */
     private final long sessionID;
 
     /**
-     * Netty channel over which to send BinaryWebSocketFrames for this session.
+     * Netty channel used to send and receive WebSocket data.
      */
-    private final Channel channel;
+    private Channel channel;
 
     /**
-     * UI instance representing server-driven UI components for this session.
+     * UI instance associated with this session for rendering and event handling.
      */
     private final UI ui;
 
     /**
-     * Creates a new session context.
-     * <p>
-     * Generates a fresh {@link UI} instance and associates the given
-     * session ID and Netty channel.
+     * Constructs a new {@code SessionContext} with a given session ID and channel.
+     * A new UI instance is also created for this session.
      *
-     * @param sessionID unique identifier for this session
-     * @param channel   Netty channel used for WebSocket communication
+     * @param sessionID the unique session ID
+     * @param channel   the Netty channel connected to the client
      */
     public SessionContext(long sessionID, Channel channel) {
         this.sessionID = sessionID;
@@ -87,122 +69,120 @@ public class SessionContext {
     }
 
     /**
-     * Registers a new session for the given channel.
-     * <p>
-     * Later calls to {@link #get(Channel)} will return this session.
+     * Registers the session instance for the given session ID.
+     * Enables session lookup later via {@link #get(long)} or {@link #all()}.
      *
-     * @param channel the Netty channel to associate
-     * @param session the session context to register
+     * @param sessionID the session ID key
+     * @param session   the {@code SessionContext} to associate
      */
-    public static void register(Channel channel, SessionContext session) {
-        SESSIONS.put(channel, session);
+    public static void register(long sessionID, SessionContext session) {
+        SESSIONS.put(sessionID, session);
     }
 
     /**
-     * Unregisters the session associated with the given channel.
+     * Unregisters a session context for a given Netty channel.
      * <p>
-     * Should be called on disconnect or channel inactive events
-     * to free resources and avoid stale entries.
+     * This is a no-op here because session registration uses sessionID as key,
+     * and this method has no effect unless changed to use sessionID instead of channel.
      *
-     * @param channel the Netty channel whose session should be removed
+     * @param channel the channel to unregister (unused in current implementation)
      */
     public static void unregister(Channel channel) {
         SESSIONS.remove(channel);
     }
 
     /**
-     * Looks up the session context for a given Netty channel.
+     * Returns the session associated with the given ID.
      *
-     * @param channel the channel on which the session is active
-     * @return the registered {@code SessionContext}, or {@code null} if none
+     * @param sessionID the ID of the session to look up.
+     * @return the session context or {@code null} if not found
      */
-    public static SessionContext get(Channel channel) {
-        return SESSIONS.get(channel);
+    public static SessionContext get(long sessionID) {
+        return SESSIONS.get(sessionID);
     }
 
     /**
-     * Returns an unmodifiable view of all active sessions.
-     * <p>
-     * Modifications to the underlying map (via {@link #register} /
-     * {@link #unregister}) are reflected in this view.
+     * Returns all active session contexts.
      *
-     * @return map of active channels to their session contexts
+     * @return map of session IDs to contexts
      */
-    public static Map<Channel, SessionContext> all() {
+    public static Map<Long, SessionContext> all() {
         return SESSIONS;
     }
 
     /**
-     * Sets the thread-local current session context.
-     * <p>
-     * Used internally by a UI framework when routing callbacks.
+     * Sets the current session context for this thread.
      *
-     * @param session the session context to bind to the current thread
+     * @param session the session to associate with the current thread
      */
     public static void set(SessionContext session) {
         CURRENT.set(session);
     }
 
     /**
-     * Retrieves the thread-local current session context.
+     * Retrieves the session context associated with the current thread.
      *
-     * @return the session context bound to this thread, or {@code null}
+     * @return the thread-local session context or {@code null}
      */
     public static SessionContext get() {
         return CURRENT.get();
     }
 
     /**
-     * Clears the thread-local current session reference.
+     * Removes the session context from the current thread.
      * <p>
-     * Should be called after UI callbacks complete to prevent leakage
-     * between threads or tasks.
+     * Useful after finishing session-scoped UI operations.
      */
     public static void clear() {
         CURRENT.remove();
     }
 
     /**
-     * Sends a binary payload to the client as a WebSocket frame.
-     * <p>
-     * Wraps the given {@link ByteBuf} in a {@link BinaryWebSocketFrame}
-     * and writes it on the channel. If the channel is not active,
-     * releases the buffer to avoid memory leaks.
+     * Sends a binary payload to the client via WebSocket.
+     * If the channel is active, sends a duplicated buffer;
+     * otherwise releases it to avoid memory leaks.
      *
-     * @param buf the Netty ByteBuf containing the payload to send
+     * @param buf the payload to send
      */
     public void send(ByteBuf buf) {
         if (channel != null && channel.isActive()) {
-            // Duplicate to allow buffer reuse by other handlers if needed
             channel.writeAndFlush(new BinaryWebSocketFrame(buf.retainedDuplicate()));
         } else {
-            // Channel inactive: release buffer to prevent memory leak
             buf.release();
         }
     }
 
     /**
-     * Returns the unique session ID.
+     * Sets the channel associated with the session context.
      *
-     * @return session identifier
+     * @param channel the Netty channel to associate with this session
+     */
+    public void setChannel(Channel channel) {
+        this.channel = channel;
+    }
+
+    /**
+     * Gets the session ID.
+     *
+     * @return session ID
      */
     public long getSessionID() {
         return sessionID;
     }
 
     /**
-     * Returns the Netty channel for this session.
+     * Gets the channel associated with this session.
      *
-     * @return the underlying Channel
+     * @return Netty channel
      */
     public Channel getChannel() {
         return channel;
     }
 
     /**
-     * Returns the {@link UI} instance tied to this session.
+     * Gets the UI instance tied to this session.
      *
-     * @return session-specific UI
+     * @return session UI
      */
     public UI getUI() {
         return ui;

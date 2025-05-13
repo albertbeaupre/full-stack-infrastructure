@@ -30,7 +30,7 @@ tasks.withType<JavaExec> {
 }
 
 group = "io.github.albertbeaupre"
-version = "0.0.1"
+version = "1.0"
 val gdxVersion = "1.13.1"
 val ph_cssVersion = "7.0.4"
 val netty_version = "4.1.108.Final"

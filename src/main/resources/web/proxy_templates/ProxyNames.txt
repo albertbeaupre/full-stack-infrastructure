@@ -1,0 +1,6 @@
+PACKAGE_NAME    - This is the name of the class package
+TYPE_NAME       - This is the name of the object type
+FIELD_NAME      - This is the name of the corresponding field
+BUFFER_WRITE    - This is the buffer write operation
+BUFFER_READ     - This is the buffer read operation
+CAPACITY        - This is the buffer capacity
