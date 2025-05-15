@@ -75,6 +75,71 @@ a:hover {
     text-decoration: underline;
 }
 
+/* Disabled links */
+a.disabled,
+a[aria-disabled="true"] {
+    color: var(--text-muted);
+    cursor: not-allowed;
+    pointer-events: none;
+    text-decoration: none;
+}
+
+/* Disabled buttons */
+button:disabled,
+input[type="submit"]:disabled,
+input[type="button"]:disabled {
+    background-color: var(--text-muted);
+    color: var(--surface-color);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Disabled form controls */
+input:disabled,
+textarea:disabled,
+select:disabled {
+    background-color: var(--surface-color);
+    border-color: var(--text-muted);
+    color: var(--text-muted);
+    cursor: not-allowed;
+}
+
+/* Disabled checkboxes & radios */
+input[type="checkbox"]:disabled,
+input[type="radio"]:disabled {
+    border-color: var(--text-muted);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+input[type="checkbox"]:disabled::after,
+input[type="radio"]:disabled::after {
+    background-color: var(--text-muted);
+}
+
+/* Disabled fieldsets */
+fieldset:disabled {
+    opacity: 0.6;
+}
+
+/* Disabled cards */
+.card.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Disabled table rows */
+tr.disabled {
+    background-color: var(--background-color);
+    color: var(--text-muted);
+    cursor: not-allowed;
+}
+
+/* Disabled images */
+img.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 /* Buttons */
 button, input[type="submit"], input[type="button"] {
     background-color: var(--primary-color);
@@ -120,8 +185,8 @@ input[type="radio"] {
     padding: 0;
     cursor: pointer;
     position: relative;
-    width: 1em;
-    height: 1em;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     background-color: var(--surface-color);
     transition: border-color 0.3s ease-out, opacity 0.3s ease-out;
@@ -133,8 +198,8 @@ input[type="checkbox"]::after {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: .5em;
-    height: .5em;
+    width: 50%;
+    height: 50%;
     margin: 0;
     padding: 0;
     background-color: var(--primary-color);
@@ -150,8 +215,8 @@ input[type="radio"]::after {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 6px;
-    height: 6px;
+    width: 50%;
+    height: 50%;
     margin: 0;
     padding: 0;
     background-color: var(--primary-color);

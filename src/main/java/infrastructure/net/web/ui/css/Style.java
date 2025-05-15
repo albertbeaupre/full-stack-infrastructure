@@ -758,6 +758,17 @@ public class Style {
     }
 
     /**
+     * Sets the color property to the specified value.
+     *
+     * @param value the color value to be set
+     * @return the current instance for method chaining
+     */
+    public Style color(String value) {
+        set("color", value);
+        return this;
+    }
+
+    /**
      * Sets the CSS {@code background} shorthand property for background styling.
      *
      * @param value the background shorthand (e.g., "#fff url('img.png') no-repeat center/cover")

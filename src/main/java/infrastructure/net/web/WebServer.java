@@ -2,7 +2,6 @@ package infrastructure.net.web;
 
 import infrastructure.net.PacketHandler;
 import infrastructure.net.web.packets.*;
-import infrastructure.net.web.ui.UI;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -84,6 +83,7 @@ public final class WebServer implements Runnable {
         WebServer.registerHandler(3, new KeyPacketHandler());
         WebServer.registerHandler(4, new ValueChangePacketHandler());
         WebServer.registerHandler(5, new SubmitPacketHandler());
+        WebServer.registerHandler(6, new FileUploadPacketHandler());
     }
 
     /**
@@ -139,27 +139,6 @@ public final class WebServer implements Runnable {
      */
     public static Router getRouter() {
         return ROUTER;
-    }
-
-    /**
-     * Launches the server from the command line on port 8080.
-     *
-     * @param args ignored command-line arguments
-     * @throws Exception if server startup fails
-     */
-    public static void main(String[] args) throws Exception {
-        WebServer.start(4040, true);
-
-        WebServer.getRouter().addRoute(new Route() {
-            @Override
-            public void load(UI ui) {
-            }
-
-            @Override
-            public String getPath() {
-                return "/";
-            }
-        });
     }
 
     /**

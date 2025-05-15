@@ -42,6 +42,7 @@ public class Checkbox extends ValueComponent<Boolean> {
 
     @Override
     protected void create() {
+        super.create();
         this.queueForDispatch(DOMUpdateType.SET_TYPE, Map.of(DOMUpdateParam.TYPE, "checkbox"));
     }
 

@@ -105,6 +105,17 @@ public class Bits {
     }
 
     /**
+     * Sets or clears the bit at the specified index based on the given boolean value.
+     *
+     * @param index The index of the bit to modify.
+     * @param set If true, sets the bit at the specified index to 1. If false, clears the bit at the specified index, setting it to 0.
+     */
+    public void set(int index, boolean set){
+        if (set) set(index);
+        else clear(index);
+    }
+
+    /**
      * Gets the state of the bit at the specified index.
      * If the index is out of bounds, false is returned.
      *

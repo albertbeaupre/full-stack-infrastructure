@@ -3,7 +3,10 @@ package infrastructure.net.web.ui;
 import infrastructure.collections.queue.IntUUIDQueue;
 import infrastructure.net.web.Router;
 import infrastructure.net.web.SessionContext;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -58,6 +61,14 @@ public class UI extends Component {
         super("body");
 
         this.componentIDs.pop(); // Reserve the root component's ID so children start from the next ID
+    }
+
+    public void setTitle(String title) {
+        ByteBuf buf = Unpooled.directBuffer(title.length() + 3);
+        buf.writeByte(3);
+        buf.writeShort(title.length());
+        buf.writeCharSequence(title, StandardCharsets.UTF_8);
+        SessionContext.get().send(buf);
     }
 
     /**

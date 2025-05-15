@@ -13,13 +13,13 @@ public class ShortBits {
     private short bits;
 
     /**
-     * Gets the value of the bit at the specified index.
+     * Retrieves the state of the bit at the specified index.
      *
-     * @param index The index of the bit to retrieve.
-     * @return The value of the bit at the specified index (0 or 1).
+     * @param index The index of the bit to retrieve. Must be a non-negative integer.
+     * @return true if the bit at the specified index is set (1), false if it is unset (0).
      */
-    public int get(int index) {
-        return (bits >> index) & 1;
+    public boolean get(int index) {
+        return (bits & (1 << index)) != 0;
     }
 
     /**
@@ -38,6 +38,17 @@ public class ShortBits {
      */
     public void clear(int index) {
         bits &= ~(1 << index);
+    }
+
+    /**
+     * Sets or clears the bit at the specified index based on the given boolean value.
+     *
+     * @param index The index of the bit to modify.
+     * @param set If true, sets the bit at the specified index to 1. If false, clears the bit at the specified index, setting it to 0.
+     */
+    public void set(int index, boolean set){
+        if (set) set(index);
+        else clear(index);
     }
 
     /**

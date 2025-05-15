@@ -30,18 +30,18 @@ import infrastructure.net.web.ui.event.ValueChangeEvent;
  * @version 1.0
  * @since May 8th, 2025
  */
-
+@SuppressWarnings("unchecked")
 public class Designer {
 
     /**
      * The parent container to which components are added.
      */
-    private Component parent;
+    protected Component parent;
 
     /**
      * The current component being operated on in the fluent chain.
      */
-    private Component component;
+    protected Component component;
 
     /**
      * Constructs a new {@code Designer} instance with a given root component.
@@ -106,6 +106,59 @@ public class Designer {
     public Designer asParent() {
         this.parent = this.component;
         return this;
+    }
+
+    /**
+     * Navigates back to the parent component by setting the current component
+     * to its parent. Updates the parent reference accordingly.
+     *
+     * @return the current instance of the Designer class to allow for method chaining
+     */
+    public Designer goBack() {
+        this.parent = this.component.getParent();
+        this.component = parent;
+        return this;
+    }
+
+    /**
+     * Retrieves the current component.
+     *
+     * @return the current Component instance stored in this object.
+     */
+    public Component current() {
+        return this.component;
+    }
+
+    /**
+     * Disables the associated component by setting its enabled state to false.
+     *
+     * @return the current Designer instance, allowing for method chaining.
+     */
+    public Designer disable() {
+        this.component.setEnabled(false);
+        return this;
+    }
+
+    /**
+     * Enables the associated component, making it active and interactive.
+     *
+     * @return the current instance of the Designer class for method chaining
+     */
+    public Designer enable() {
+        this.component.setEnabled(true);
+        return this;
+    }
+
+    /**
+     * Retrieves the current component instance of the specified type.
+     *
+     * @param <T>   the type of the component to be retrieved, extending Component
+     * @param clazz the class object representing the type of the component
+     * @return the current component instance cast to the specified type
+     * @throws ClassCastException if this component cannot be cast to the specified type
+     */
+    public <T extends Component> T current(Class<T> clazz) {
+        return clazz.cast(this.component);
     }
 
     /**
@@ -360,6 +413,50 @@ public class Designer {
      */
     public Designer margin(String value) {
         this.component.getStyle().set("margin", value);
+        return this;
+    }
+
+    /**
+     * Sets the bottom margin of the component using the specified value.
+     *
+     * @param value the CSS value for the bottom margin, such as "10px", "1em", etc.
+     * @return the current instance of the Designer to allow method chaining.
+     */
+    public Designer marginBottom(String value) {
+        this.component.getStyle().marginBottom(value);
+        return this;
+    }
+
+    /**
+     * Sets the top margin of the component to the specified value.
+     *
+     * @param value the value to be set as the top margin (e.g., px, em, %, etc.)
+     * @return the current instance of the Designer to allow method chaining
+     */
+    public Designer marginTop(String value) {
+        this.component.getStyle().marginTop(value);
+        return this;
+    }
+
+    /**
+     * Sets the left margin of the component to the specified value.
+     *
+     * @param value the margin-left value to be applied, e.g., "10px", "2em", "auto"
+     * @return the current instance of the Designer class for method chaining
+     */
+    public Designer marginLeft(String value) {
+        this.component.getStyle().marginLeft(value);
+        return this;
+    }
+
+    /**
+     * Sets the right margin for the component's style.
+     *
+     * @param value the desired right margin value (e.g., "10px", "1em", etc.)
+     * @return the current instance of the Designerfor method chaining
+     */
+    public Designer marginRight(String value) {
+        this.component.getStyle().marginRight(value);
         return this;
     }
 
@@ -1194,7 +1291,7 @@ public class Designer {
      *
      * @param component the new component to add and operate on
      */
-    private void setComponent(Component component) {
+    protected void setComponent(Component component) {
         this.component = component;
         parent.add(component);
     }
@@ -1207,6 +1304,17 @@ public class Designer {
      */
     public static Designer begin(Component parent) {
         return new Designer(parent);
+    }
+
+    /**
+     * Sets the provided component and returns the current instance of the object.
+     *
+     * @param component the component to set
+     * @return the current instance with the updated component
+     */
+    public Designer component(Component component) {
+        setComponent(component);
+        return this;
     }
 
 }

@@ -43,12 +43,12 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
     /**
      * Holds child components nested under this component.
      */
-    private final ArrayList<Component> children = new ArrayList<>();
+    private ArrayList<Component> children;
 
     /**
      * Responsible for managing the publishing and subscription of events within the component.
      */
-    private final EventPublisher publisher = new EventPublisher();
+    private EventPublisher publisher;
 
     /**
      * Manages CSS styles for this component, identified by its component ID.
@@ -74,11 +74,15 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
      * Unique identifier assigned by the {@link UI} for DOM mapping.
      */
     private int componentID;
-
     /**
      * True if this component is attached to the live DOM; false otherwise.
      */
     private boolean attached;
+
+    /**
+     * Represents the enabled state of the component.
+     */
+    private boolean enabled;
 
     /**
      * Constructs a new Component with the given HTML tag.
@@ -98,7 +102,7 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
             this.ui = SessionContext.get().getUI();
             this.componentID = this.ui.nextComponentID();
         }
-        this.style = new Style(this, "component-" + this.getComponentID());
+        this.style = new Style(this, "#" + this.getComponentID());
     }
 
     /**
@@ -128,13 +132,13 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
      * @param children one or more parts to append as children
      */
     public void add(Component... children) {
+        if (this.children == null)
+            this.children = new ArrayList<>();
+
         for (Component child : children) {
             this.ui.register(child.componentID, child);
             this.children.add(child);
-            this.queueForDispatch(DOMUpdateType.APPEND_CHILD, Map.of(
-                    DOMUpdateParam.IDENTIFIER, child.componentID,
-                    DOMUpdateParam.HTML, child.tag
-            ));
+            this.queueForDispatch(DOMUpdateType.APPEND_CHILD, Map.of(DOMUpdateParam.IDENTIFIER, child.componentID, DOMUpdateParam.HTML, child.tag));
             child.create();
             child.parent = this;
             child.attached = this.isAttached();
@@ -152,6 +156,9 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
      * @param children one or more parts to remove
      */
     public void remove(Component... children) {
+        if (this.children == null)
+            return;
+
         for (Component child : children) {
             child.parent = null;
             child.attached = false;
@@ -172,11 +179,7 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
      */
     @Override
     public void handle(StyleChangeEvent event) {
-        this.dispatcher.queue(
-                new DOMUpdate(DOMUpdateType.SET_STYLE, componentID)
-                        .param(DOMUpdateParam.STYLE_PROPERTY, event.getProperty())
-                        .param(DOMUpdateParam.STYLE_VALUE, event.getValue())
-        );
+        this.dispatcher.queue(new DOMUpdate(DOMUpdateType.SET_STYLE, componentID).param(DOMUpdateParam.STYLE_PROPERTY, event.getProperty()).param(DOMUpdateParam.STYLE_VALUE, event.getValue()));
         push();
     }
 
@@ -192,11 +195,11 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
      * @param name     the DOM event name (e.g., "click", "keydown")
      */
     private <T extends Event> void registerEventListener(Class<T> clazz, EventListener<T> listener, String name) {
+        if (this.publisher == null)
+            this.publisher = new EventPublisher();
+
         if (!this.publisher.isRegistered(clazz)) {
-            this.dispatcher.queue(
-                    new DOMUpdate(DOMUpdateType.ADD_EVENT_LISTENER, componentID)
-                            .param(DOMUpdateParam.EVENT_NAME, name)
-            );
+            this.dispatcher.queue(new DOMUpdate(DOMUpdateType.ADD_EVENT_LISTENER, componentID).param(DOMUpdateParam.EVENT_NAME, name));
         }
         this.publisher.register(clazz, listener);
         push();
@@ -254,8 +257,10 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
     protected void push() {
         if (isAttached()) {
             this.dispatcher.flush(SessionContext.get().getChannel());
-            for (Component child : children)
-                child.push();
+            if (this.children != null) {
+                for (Component child : children)
+                    child.push();
+            }
         }
     }
 
@@ -269,7 +274,8 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
      * reflects the removal.
      */
     public void clear() {
-        this.children.clear();
+        if (this.children != null)
+            this.children.clear();
         this.queueForDispatch(DOMUpdateType.CLEAR_CHILDREN);
         push();
     }
@@ -302,7 +308,7 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
      *
      * @param type the type of DOM update to queue (e.g., updates related to attributes, styles, or child elements)
      */
-    protected void queueForDispatch(DOMUpdateType type) {
+    public void queueForDispatch(DOMUpdateType type) {
         this.dispatcher.queue(new DOMUpdate(type, getComponentID()));
     }
 
@@ -314,7 +320,7 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
      * @param type       the type of DOM update to queue (e.g., updates related to attributes, styles, or child elements)
      * @param parameters a map of parameters specifying the details of the DOM update (e.g., attributes or values)
      */
-    protected void queueForDispatch(DOMUpdateType type, Map<DOMUpdateParam, Object> parameters) {
+    public void queueForDispatch(DOMUpdateType type, Map<DOMUpdateParam, Object> parameters) {
         this.dispatcher.queue(new DOMUpdate(type, getComponentID()).params(parameters));
     }
 
@@ -327,7 +333,7 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
      * @param param the parameter defining the aspect of the DOM to be updated (e.g., an attribute or property)
      * @param value the value associated with the parameter for the update (e.g., the new attribute value)
      */
-    protected void queueForDispatch(DOMUpdateType type, DOMUpdateParam param, Object value) {
+    public void queueForDispatch(DOMUpdateType type, DOMUpdateParam param, Object value) {
         this.dispatcher.queue(new DOMUpdate(type, getComponentID()).param(param, value));
     }
 
@@ -336,8 +342,39 @@ public abstract class Component implements EventListener<StyleChangeEvent> {
      *
      * @return the component ID
      */
-    protected int getComponentID() {
+    public int getComponentID() {
         return componentID;
     }
 
+    /**
+     * Retrieves the parent component of this component.
+     *
+     * @return the parent component if it exists, or null if this component does not have a parent
+     */
+    public Component getParent() {
+        return parent;
+    }
+
+    /**
+     * Sets the enabled state of the component.
+     * Queues a DOM update to toggle the "disabled" property based on the provided state.
+     *
+     * @param enabled {@code true} to enable the component, {@code false} to disable it
+     */
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+        this.queueForDispatch(DOMUpdateType.SET_PROPERTY, Map.of(DOMUpdateParam.PROPERTY, "disabled", DOMUpdateParam.VALUE, !enabled));
+        this.push();
+    }
+
+    /**
+     * Determines whether this component is currently enabled.
+     * The enabled state affects the component's interactivity and may
+     * control whether it is usable or interactive within the UI.
+     *
+     * @return {@code true} if the component is enabled; {@code false} otherwise
+     */
+    public boolean isEnabled() {
+        return enabled;
+    }
 }
