@@ -60,10 +60,6 @@ public class FileUploader extends Component {
     protected void create() {
         this.queueForDispatch(DOMUpdateType.SET_TYPE, DOMUpdateParam.TYPE, "file");
 
-        // Enable directory selection for supporting browsers
-        this.queueForDispatch(DOMUpdateType.SET_ATTRIBUTE, Map.of(DOMUpdateParam.KEY, "directory", DOMUpdateParam.VALUE, ""));
-        this.queueForDispatch(DOMUpdateType.SET_ATTRIBUTE, Map.of(DOMUpdateParam.KEY, "webkitdirectory", DOMUpdateParam.VALUE, ""));
-
         // Apply file type restrictions if set
         if (fileTypes != null)
             setAcceptFileTypes(this.fileTypes);

@@ -16,9 +16,9 @@ public class FileUploadPacketHandler implements PacketHandler {
     public void handlePacket(SessionContext context, ByteBuf packet) {
         int componentID = packet.readInt();
         int fileNameLength = packet.readUnsignedShort();
+        int fileLength = packet.readInt();
         String fileName = packet.readCharSequence(fileNameLength, StandardCharsets.UTF_8).toString();
 
-        int fileLength = packet.readInt();
         int available  = Math.min(packet.readableBytes(), fileLength);
         if (fileLength != available)
             Log.error("Possible file corruption: expected {}, got {}", fileLength, packet.readableBytes());

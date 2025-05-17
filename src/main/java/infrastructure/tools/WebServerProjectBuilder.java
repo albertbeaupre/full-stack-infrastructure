@@ -6,6 +6,7 @@ import infrastructure.net.web.WebServer;
 import infrastructure.net.web.ui.Component;
 import infrastructure.net.web.ui.Designer;
 import infrastructure.net.web.ui.UI;
+import infrastructure.net.web.ui.components.AnimatedPieChart;
 import infrastructure.net.web.ui.components.FileUploader;
 import infrastructure.net.web.ui.components.Label;
 import infrastructure.net.web.ui.components.TextField;
@@ -18,6 +19,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.time.Year;
+import java.util.Map;
 
 public final class WebServerProjectBuilder {
 
@@ -43,14 +45,17 @@ public final class WebServerProjectBuilder {
                 PROJECT_NAME_FIELD = new TextField("Project Name");
                 PACKAGE_NAME_FIELD = new TextField("Package Name");
                 FileUploader uploader = new FileUploader();
-                uploader.setHandler(new FileUploader.FileUploadHandler() {
-                    @Override
-                    public void handle(String fileName, byte[] data) {
-                        System.out.println("WTF: "+fileName);
-                    }
-                });
+                uploader.setHandler((fileName, data) -> System.out.println("WTF: "+fileName));
 
                 ui.setTitle("Web Server Project Builder");
+
+                Map<String,Double> slices = Map.of(
+                        "Apples", 30.0,
+                        "Bananas", 20.0,
+                        "Cherries", 50.0
+                );
+                AnimatedPieChart chart = new AnimatedPieChart(slices, 300, 300, 0.3f);
+
 
                 Designer.begin(ui)
                         .h1("Web Server Project Builder")
@@ -58,7 +63,7 @@ public final class WebServerProjectBuilder {
                         .label("Uses Java Version " + JAVA_VERSION)
                         .textAlign(TextAlign.CENTER)
                         .marginBottom("2.5em")
-                        .component(uploader)
+                        .component(chart)
 
                         .div()
                         .asParent()
